@@ -69,6 +69,17 @@
     
     .side-info .title-small{font-weight:600;font-size:14px;line-height:1.2;margin-bottom:4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;}
     .side-info .meta-small{font-size:12px;color:var(--muted)}
+
+    /* --- МОБИЛЬНАЯ ВЕРСИЯ --- */
+    @media (max-width: 900px) {
+      .container { flex-direction: column; padding: 10px; }
+      .side-column { max-width: 100%; }
+      .player-column { width: 100%; }
+      .video-meta { flex-direction: column; align-items: flex-start; gap: 15px; }
+      .engage-row { width: 100%; justify-content: space-between; }
+      .title { font-size: 18px; }
+      .side-thumb-wrapper { width: 120px; height: 70px; }
+    }
   </style>
 </head>
 <body>
