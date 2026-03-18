@@ -12,7 +12,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #0a0a12; /* Твой основной темный фон */
+      background: #0a0a12;
       font-family: 'Inter', sans-serif;
       overflow: hidden;
     }
@@ -126,7 +126,6 @@
       gap: 12px;
     }
 
-    /* Оформление контейнера Google */
     #googleBtn {
         display: flex;
         justify-content: center;
@@ -175,7 +174,6 @@
 
   <div class="social-block">
     <div id="googleBtn"></div>
-    
     <div class="social-btn">
         <img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/VK_Compact_Logo_%282021-present%29.svg"> 
         Войти через VK
@@ -186,7 +184,6 @@
 <script>
   let mode = "login";
 
-  // Инициализация Google при загрузке страницы
   window.onload = function () {
       google.accounts.id.initialize({
           client_id: "897716797553-spvtnmo96h8mnn9tioa4t4ir1iqv60qh.apps.googleusercontent.com", 
@@ -218,11 +215,11 @@
       const userData = parseJwt(response.credential);
       console.log("Пользователь Google:", userData);
       
+      // Сразу сохраняем имя, чтобы upload.html его видел
       localStorage.setItem('currentUser', userData.given_name);
       localStorage.setItem('userPic', userData.picture);
 
       try {
-          // ИСПРАВЛЕНО: заменен localhost:3000 на относительный путь
           const res = await fetch('/google-auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -233,11 +230,9 @@
               alert("👋 Добро пожаловать, " + userData.given_name);
               window.location.href = "index.html";
           } else {
-              alert("Сервер подтвердил вход, но есть нюансы. Перенаправляем...");
               window.location.href = "index.html"; 
           }
       } catch (error) {
-          alert("Вход выполнен локально (Сервер офлайн). Привет, " + userData.given_name);
           window.location.href = "index.html";
       }
   }
@@ -252,22 +247,63 @@
       title.textContent = "Регистрация";
       link.textContent = "Уже есть аккаунт? Войти";
       fields.innerHTML = `
-        <input id="username" class="input" type="text" placeholder="Имя">
-        <input id="email" class="input" type="email" placeholder="Email">
-        <input id="pass" class="input" type="password" placeholder="Пароль">
+        <input id="usernameInput" class="input" type="text" placeholder="Имя">
+        <input id="emailInput" class="input" type="email" placeholder="Email">
+        <input id="passInput" class="input" type="password" placeholder="Пароль">
       `;
     } else {
       title.textContent = "Вход в VideoHub";
       link.textContent = "Перейти к регистрации";
       fields.innerHTML = `
         <input id="loginInput" class="input" type="text" placeholder="Email или Логин">
-        <input id="pass" class="input" type="password" placeholder="Пароль">
+        <input id="passInput" class="input" type="password" placeholder="Пароль">
       `;
     }
   }
 
+  // ОСНОВНАЯ ФУНКЦИЯ ОТПРАВКИ (ИСПРАВЛЕНО)
   async function submitForm() {
-    alert("Функция обычной отправки вызвана");
+    const endpoint = mode === "login" ? "/login" : "/register";
+    let payload = {};
+
+    if (mode === "register") {
+        payload = {
+            username: document.getElementById("usernameInput").value,
+            email: document.getElementById("emailInput").value,
+            password: document.getElementById("passInput").value
+        };
+    } else {
+        payload = {
+            username: document.getElementById("loginInput").value,
+            password: document.getElementById("passInput").value
+        };
+    }
+
+    if (!payload.username || !payload.password) {
+        return alert("Заполните все поля!");
+    }
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // КРИТИЧНО: сохраняем имя в localStorage для загрузки видео
+            localStorage.setItem('currentUser', data.username || payload.username);
+            alert(mode === "login" ? "С возвращением!" : "Регистрация успешна!");
+            window.location.href = "index.html";
+        } else {
+            alert("Ошибка: " + (data.error || "Что-то пошло не так"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Не удалось связаться с сервером. Проверьте Render!");
+    }
   }
 </script>
 </body>
