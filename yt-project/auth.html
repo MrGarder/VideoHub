@@ -164,7 +164,7 @@
     <input id="passInput" class="input" type="password" placeholder="Пароль">
   </div>
 
-  <button class="btn-main" onclick="submitForm()">Продолжить</button>
+  <button class="btn-main" id="submitBtn" onclick="submitForm()">Продолжить</button>
 
   <div class="switch">
     <a id="switchLink" onclick="toggleMode()">Перейти к регистрации</a>
@@ -183,6 +183,10 @@
 
 <script>
   let mode = "login";
+  // Авто-определение URL сервера. Если запуск локальный — ставим твой URL с Render.
+  const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname
+    ? "https://videohub-xt5y.onrender.com" 
+    : "";
 
   window.onload = function () {
       google.accounts.id.initialize({
@@ -213,12 +217,11 @@
 
   async function handleGoogleResponse(response) {
       const userData = parseJwt(response.credential);
-      
       localStorage.setItem('currentUser', userData.given_name);
       localStorage.setItem('userPic', userData.picture);
 
       try {
-          const res = await fetch('/google-auth', {
+          await fetch(API_URL + '/google-auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: response.credential })
@@ -254,25 +257,30 @@
   }
 
   async function submitForm() {
-    // Находим поля в зависимости от текущего режима
-    const loginVal = mode === "login" 
-      ? document.getElementById("loginInput").value 
-      : document.getElementById("usernameInput").value;
+    const btn = document.getElementById("submitBtn");
     
-    const passVal = document.getElementById("passInput").value;
-    const emailVal = mode === "register" ? document.getElementById("emailInput").value : null;
+    // Собираем данные
+    const loginInput = mode === "login" ? document.getElementById("loginInput") : document.getElementById("usernameInput");
+    const passInput = document.getElementById("passInput");
+    const emailInput = mode === "register" ? document.getElementById("emailInput") : null;
 
-    if (!loginVal || !passVal) {
+    if (!loginInput.value || !passInput.value) {
         return alert("Заполните все поля!");
     }
 
+    const payload = {
+        username: loginInput.value,
+        password: passInput.value
+    };
+    if (emailInput) payload.email = emailInput.value;
+
     const endpoint = mode === "login" ? "/login" : "/register";
-    const payload = mode === "login" 
-      ? { username: loginVal, password: passVal }
-      : { username: loginVal, email: emailVal, password: passVal };
 
     try {
-        const response = await fetch(endpoint, {
+        btn.innerText = "Загрузка...";
+        btn.disabled = true;
+
+        const response = await fetch(API_URL + endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -281,15 +289,18 @@
         const data = await response.json();
 
         if (response.ok) {
-            localStorage.setItem('currentUser', data.username || loginVal);
+            localStorage.setItem('currentUser', data.username || payload.username);
             alert(mode === "login" ? "С возвращением!" : "Регистрация успешна!");
             window.location.href = "index.html";
         } else {
             alert("Ошибка: " + (data.error || "Неверные данные"));
         }
     } catch (err) {
-        console.error(err);
-        alert("Сервер не отвечает. Проверь статус на Render!");
+        console.error("Ошибка запроса:", err);
+        alert("Сервер не отвечает. Проверь логи в Render или подожди (бесплатный тариф засыпает).");
+    } finally {
+        btn.innerText = "Продолжить";
+        btn.disabled = false;
     }
   }
 </script>
