@@ -128,7 +128,7 @@
 const urlParams = new URLSearchParams(location.search);
 const videoId = urlParams.get('v');
 const currentUser = localStorage.getItem('currentUser');
-let currentVideoData = null; // Для хранения инфы о текущем видео
+let currentVideoData = null; 
 
 function formatDate(date) {
     return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -139,7 +139,6 @@ function goToChannel(name) {
     location.href = `profile.html?user=${cleanName}`;
 }
 
-// ФУНКЦИЯ ВЫХОДА С СОХРАНЕНИЕМ ДЛЯ МИНИ-ПЛЕЕРА
 function goBack() {
     const player = document.getElementById('player');
     if (currentVideoData && player && !player.ended && player.currentTime > 0) {
@@ -157,11 +156,10 @@ function goBack() {
 async function initWatchPage() {
     if (!videoId) return location.href = 'index.html';
     
-    // При входе на страницу чистим старый мини-плеер, чтобы не мешался
     localStorage.removeItem('lastWatched');
 
     try {
-        const res = await fetch('http://localhost:3000/videos');
+        const res = await fetch('/videos');
         const allVideos = await res.json();
         const video = allVideos.find(v => v.id == videoId);
         
@@ -194,13 +192,13 @@ async function initWatchPage() {
         }
         document.getElementById('authorLink').onclick = () => goToChannel(authorName);
 
-        const subRes = await fetch(`http://localhost:3000/subscribe/count/${authorName}`);
+        const subRes = await fetch(`/subscribe/count/${authorName}`);
         const subData = await subRes.json();
         document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
 
-        fetch(`http://localhost:3000/videos/${video.id}/view`, { method: 'POST' });
+        fetch(`/videos/${video.id}/view`, { method: 'POST' });
         if (currentUser) {
-            fetch('http://localhost:3000/history/add', {
+            fetch('/history/add', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ username: currentUser, videoId: video.id })
@@ -216,7 +214,7 @@ async function initWatchPage() {
 }
 
 async function loadLikesStatus() {
-    const res = await fetch(`http://localhost:3000/videos/${videoId}/likes-status?username=${currentUser || ''}`);
+    const res = await fetch(`/videos/${videoId}/likes-status?username=${currentUser || ''}`);
     const data = await res.json();
     document.getElementById('likeCount').innerText = data.count;
     const lBtn = document.getElementById('likeBtn');
@@ -227,7 +225,7 @@ async function loadLikesStatus() {
 
 async function loadSubStatus(authorName) {
     if(!currentUser || currentUser === authorName) return;
-    const res = await fetch(`http://localhost:3000/subscribe/status?follower=${currentUser}&authorName=${authorName}`);
+    const res = await fetch(`/subscribe/status?follower=${currentUser}&authorName=${authorName}`);
     const data = await res.json();
     const subBtn = document.getElementById('subBtn');
     if(data.subscribed) {
@@ -238,7 +236,7 @@ async function loadSubStatus(authorName) {
 
 document.getElementById('likeBtn').onclick = async function() {
     if(!currentUser) return alert("Войдите в аккаунт!");
-    await fetch(`http://localhost:3000/videos/${videoId}/like`, {
+    await fetch(`/videos/${videoId}/like`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ username: currentUser })
@@ -248,7 +246,7 @@ document.getElementById('likeBtn').onclick = async function() {
 
 document.getElementById('dislikeBtn').onclick = async function() {
     if(!currentUser) return alert("Войдите в аккаунт!");
-    await fetch(`http://localhost:3000/videos/${videoId}/dislike`, {
+    await fetch(`/videos/${videoId}/dislike`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ username: currentUser })
@@ -261,7 +259,7 @@ document.getElementById('subBtn').onclick = async function() {
     const authorName = document.getElementById('authorName').innerText.replace('@', '');
     if(currentUser === authorName) return alert("Это ваш канал");
 
-    const res = await fetch(`http://localhost:3000/subscribe`, {
+    const res = await fetch(`/subscribe`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ follower: currentUser, authorName: authorName })
@@ -269,7 +267,7 @@ document.getElementById('subBtn').onclick = async function() {
     const data = await res.json();
     this.innerText = (data.status === 'subscribed') ? "Вы подписаны" : "Подписаться";
     this.classList.toggle('active', data.status === 'subscribed');
-    const subRes = await fetch(`http://localhost:3000/subscribe/count/${authorName}`);
+    const subRes = await fetch(`/subscribe/count/${authorName}`);
     const subData = await subRes.json();
     document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
 };
@@ -296,7 +294,7 @@ function renderRecommended(videos, currentId) {
 }
 
 async function loadComments() {
-    const res = await fetch(`http://localhost:3000/videos/${videoId}/comments`);
+    const res = await fetch(`/videos/${videoId}/comments`);
     const comments = await res.json();
     const list = document.getElementById('commentsList');
     if (comments.length === 0) {
@@ -318,7 +316,7 @@ document.querySelector('.send-btn').onclick = async function() {
     const text = document.getElementById('commentInput').value;
     if (!currentUser) return alert("Войдите!");
     if (!text.trim()) return;
-    const res = await fetch(`http://localhost:3000/videos/${videoId}/comments`, {
+    const res = await fetch(`/videos/${videoId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: currentUser, text: text })
