@@ -422,7 +422,8 @@
 
     async function fetchVideos() {
       try {
-        const res = await fetch('http://localhost:3000/videos');
+        // ИСПРАВЛЕНО: заменен localhost:3000 на относительный путь для корректной работы на сервере
+        const res = await fetch('/videos');
         allVideosData = await res.json();
         renderVideos(allVideosData);
         checkMiniPlayer(); // Проверяем плеер только после загрузки данных
