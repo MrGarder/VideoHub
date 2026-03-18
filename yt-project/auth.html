@@ -183,8 +183,9 @@
 
 <script>
   let mode = "login";
-  // Авто-определение URL сервера. Если запуск локальный — ставим твой URL с Render.
-  const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname
+  
+  // Авто-определение URL. Если запущено локально, стучимся на Render.
+  const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname)
     ? "https://videohub-xt5y.onrender.com" 
     : "";
 
@@ -196,13 +197,7 @@
       
       google.accounts.id.renderButton(
           document.getElementById("googleBtn"),
-          { 
-              theme: "outline", 
-              size: "large", 
-              width: 350, 
-              text: "continue_with",
-              shape: "pill" 
-          } 
+          { theme: "outline", size: "large", width: 350, text: "continue_with", shape: "pill" } 
       );
   }
 
@@ -258,26 +253,37 @@
 
   async function submitForm() {
     const btn = document.getElementById("submitBtn");
-    
-    // Собираем данные
-    const loginInput = mode === "login" ? document.getElementById("loginInput") : document.getElementById("usernameInput");
     const passInput = document.getElementById("passInput");
-    const emailInput = mode === "register" ? document.getElementById("emailInput") : null;
+    
+    let payload = {};
+    let endpoint = "";
 
-    if (!loginInput.value || !passInput.value) {
-        return alert("Заполните все поля!");
+    if (mode === "login") {
+        const loginVal = document.getElementById("loginInput").value;
+        if (!loginVal || !passInput.value) return alert("Заполните все поля!");
+        
+        endpoint = "/login";
+        // Сервер ждет 'loginData' для авторизации
+        payload = {
+            loginData: loginVal, 
+            password: passInput.value
+        };
+    } else {
+        const userVal = document.getElementById("usernameInput").value;
+        const emailVal = document.getElementById("emailInput").value;
+        if (!userVal || !emailVal || !passInput.value) return alert("Заполните все поля!");
+        
+        endpoint = "/register";
+        // Сервер ждет 'username' для регистрации
+        payload = {
+            username: userVal,
+            email: emailVal,
+            password: passInput.value
+        };
     }
 
-    const payload = {
-        username: loginInput.value,
-        password: passInput.value
-    };
-    if (emailInput) payload.email = emailInput.value;
-
-    const endpoint = mode === "login" ? "/login" : "/register";
-
     try {
-        btn.innerText = "Загрузка...";
+        btn.innerText = "Связь...";
         btn.disabled = true;
 
         const response = await fetch(API_URL + endpoint, {
@@ -286,10 +292,18 @@
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        // Пытаемся распарсить ответ
+        const contentType = response.headers.get("content-type");
+        let data;
+        if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+        } else {
+            const textError = await response.text();
+            data = { error: textError };
+        }
 
         if (response.ok) {
-            localStorage.setItem('currentUser', data.username || payload.username);
+            localStorage.setItem('currentUser', data.username || payload.username || payload.loginData);
             alert(mode === "login" ? "С возвращением!" : "Регистрация успешна!");
             window.location.href = "index.html";
         } else {
@@ -297,7 +311,7 @@
         }
     } catch (err) {
         console.error("Ошибка запроса:", err);
-        alert("Сервер не отвечает. Проверь логи в Render или подожди (бесплатный тариф засыпает).");
+        alert("Сервер не отвечает. Если это первый запуск, подожди минуту (Render просыпается).");
     } finally {
         btn.innerText = "Продолжить";
         btn.disabled = false;
