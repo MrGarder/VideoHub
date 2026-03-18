@@ -86,7 +86,8 @@ async function loadHistory() {
     }
     
     try {
-        const res = await fetch(`http://localhost:3000/history/${user}`);
+        // ИСПРАВЛЕНО: относительный путь вместо localhost
+        const res = await fetch(`/history/${user}`);
         const data = await res.json();
         
         if(!data || data.length === 0) {
@@ -116,7 +117,8 @@ async function deleteHistoryItem(histId) {
     if(!confirm('Удалить это видео из истории?')) return;
 
     try {
-        const res = await fetch(`http://localhost:3000/history/item/${histId}`, {
+        // ИСПРАВЛЕНО: относительный путь вместо localhost
+        const res = await fetch(`/history/item/${histId}`, {
             method: 'DELETE'
         });
 
@@ -135,7 +137,8 @@ async function deleteHistoryItem(histId) {
 document.getElementById('clearAll').onclick = async () => {
     if(!user) return;
     if(confirm('Очистить всю вашу историю просмотров?')) {
-        await fetch(`http://localhost:3000/history/${user}`, { method: 'DELETE' });
+        // ИСПРАВЛЕНО: относительный путь вместо localhost
+        await fetch(`/history/${user}`, { method: 'DELETE' });
         loadHistory();
     }
 };
