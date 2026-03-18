@@ -193,7 +193,8 @@
 
         // Используем XMLHttpRequest для отслеживания прогресса
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', 'http://localhost:3000/upload', true);
+        // ИСПРАВЛЕНО: относительный путь вместо localhost
+        xhr.open('POST', '/upload', true);
 
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
