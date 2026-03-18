@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>VideoHub — Популярное</title>
+  <style>
+    :root {
+      --bg: #0d0b14;
+      --accent: #8b5cf6;
+      --text: #e5e1ff;
+      --card-bg: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+    }
+    body {
+      margin: 0; font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0d0b14 0%, #161225 100%);
+      color: var(--text); min-height: 100vh;
+    }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 100; height: 65px;
+      display: flex; align-items: center; padding: 0 25px;
+      background: rgba(13, 11, 20, 0.8); backdrop-filter: blur(15px);
+      border-bottom: 1px solid var(--border);
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.1); color: #fff; border: 1px solid var(--border);
+      padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .back-btn:hover { background: var(--accent); }
+
+    .header-title { margin-left: 20px; font-size: 20px; font-weight: 700; }
+    .header-title span { color: var(--accent); margin-right: 8px; }
+
+    .container { padding: 30px 40px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+    }
+
+    .video-card {
+      background: var(--card-bg); border-radius: 18px; overflow: hidden;
+      border: 1px solid var(--border); transition: 0.3s; cursor: pointer;
+      position: relative;
+    }
+    .video-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+
+    .trending-badge {
+        position: absolute; top: 10px; left: 10px; z-index: 10;
+        background: var(--accent); color: white; padding: 4px 10px;
+        border-radius: 20px; font-size: 12px; font-weight: bold;
+    }
+
+    .thumb-wrapper {
+      width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative;
+    }
+    
+    /* ФИКС ОБЛОЖЕК: Растягиваем на весь блок */
+    .thumb-wrapper img, .thumb-wrapper video {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; top: 0; left: 0;
+    }
+    .thumb-wrapper img { z-index: 2; transition: opacity 0.3s; }
+    .thumb-wrapper video { z-index: 1; opacity: 0; transition: opacity 0.3s; }
+
+    .video-info { padding: 18px; }
+    .video-info h4 { margin: 0 0 8px 0; font-size: 17px; color: #fff; }
+    
+    /* СТИЛЬ ДЛЯ ЛАЙКОВ */
+    .stats { display: flex; align-items: center; gap: 15px; font-size: 14px; color: #aaa; }
+    .stats b { color: #fff; }
+    .stats .like-section { display: flex; align-items: center; gap: 4px; color: #ff4757; }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="back-btn" onclick="location.href='index.html'">← На главную</button>
+  <div class="header-title"><span>🔥</span> В тренде сегодня</div>
+</header>
+
+<div class="container">
+  <div id="popularGrid" class="grid"></div>
+</div>
+
+<script>
+  function playPreview(card) {
+      const v = card.querySelector('video');
+      const i = card.querySelector('img');
+      if (v) { 
+        v.style.opacity = "1"; 
+        if(i) i.style.opacity = "0";
+        v.play().catch(() => {}); 
+      }
+  }
+
+  function stopPreview(card) {
+      const v = card.querySelector('video');
+      const i = card.querySelector('img');
+      if (v) { 
+        v.pause(); v.currentTime = 0; 
+        v.style.opacity = "0"; 
+        if(i) i.style.opacity = "1";
+      }
+  }
+
+  async function loadPopular() {
+    const grid = document.getElementById('popularGrid');
+    try {
+      const res = await fetch('http://localhost:3000/videos');
+      const videos = await res.json();
+      
+      console.log("Данные с сервера:", videos); // ПРОВЕРЬ ЭТО В КОНСОЛИ (F12)
+
+      // Сортировка
+      videos.sort((a, b) => ((b.views || 0) + (b.likes || 0) * 2) - ((a.views || 0) + (a.likes || 0) * 2));
+
+      grid.innerHTML = videos.slice(0, 20).map((v, index) => {
+        // Если thumbnail_url пустой, используем заглушку или первый кадр видео
+        const thumb = v.thumbnail_url ? `<img src="${v.thumbnail_url}">` : `<img src="https://via.placeholder.com/640x360/111/444?text=No+Thumbnail" style="opacity:0.5">`;
+        
+        return `
+          <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${v.id}'">
+            <div class="trending-badge">#${index + 1}</div>
+            <div class="thumb-wrapper">
+              ${thumb}
+              <video src="${v.url}" muted loop preload="none"></video>
+            </div>
+            <div class="video-info">
+              <h4>${v.title || 'Без названия'}</h4>
+              <div class="stats">
+                <span>👁 <b>${v.views || 0}</b></span>
+                <span class="like-section">❤️ <b>${v.likes || 0}</b></span>
+              </div>
+              <p style="margin-top:8px; font-size:12px; color:var(--accent)">@${v.author_name || 'Аноним'}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      grid.innerHTML = "Ошибка сервера. Проверь консоль.";
+    }
+  }
+
+  window.onload = loadPopular;
+</script>
+</body>
+</html>

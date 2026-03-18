@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>История просмотров — VideoHub</title>
+
+    <style>
+        :root { 
+            --bg: #1b1630; 
+            --bg2: rgba(255,255,255,0.05); 
+            --border: rgba(255,255,255,0.12); 
+            --hover: rgba(255,255,255,0.08); 
+            --text: #fff; 
+            --accent: #7a41ff;
+        }
+        body { margin:0; background:var(--bg); color:var(--text); font-family:Inter, Arial, sans-serif; }
+        
+        .topbar { 
+            display:flex; align-items:center; gap:12px; padding:12px 16px; 
+            background:rgba(255,255,255,0.06); border-bottom:1px solid var(--border); 
+            position:sticky; top:0; z-index:50; backdrop-filter: blur(10px); 
+        }
+
+        .history-controls { padding:12px 16px; }
+        
+        .clear-btn { 
+            padding:8px 14px; border-radius:8px; border:1px solid var(--border); 
+            background:var(--bg2); cursor:pointer; font-size:14px; color:var(--text); 
+            transition: 0.2s;
+        }
+        .clear-btn:hover { background: rgba(255, 50, 50, 0.2); border-color: #ff4444; }
+
+        .history-item { 
+            display:flex; align-items:center; padding:10px 16px; gap:14px; 
+            position:relative; transition:.25s; border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .history-item:hover { background:var(--hover); }
+        
+        .thumb { width:150px; height:85px; border-radius:10px; object-fit:cover; cursor:pointer; background: #000; }
+        
+        .info-block { flex: 1; cursor: pointer; }
+        .title { font-size:15px; font-weight:500; margin-bottom:4px; }
+        .time { font-size:13px; opacity:.6; }
+
+        .delete-one {
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #ff6b6b;
+            font-size: 16px;
+            cursor: pointer;
+            transition: .2s;
+            margin-left: 10px;
+        }
+        .delete-one:hover {
+            background: rgba(255,0,0,0.2);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <button onclick="location.href='index.html'" style="padding:6px 14px; border-radius:10px; background:var(--accent); border:0; color:white; cursor:pointer;">
+        ← Назад
+    </button>
+    <b style="font-size:20px;">VideoHub — История</b>
+</div>
+
+<div class="history-controls">
+    <button class="clear-btn" id="clearAll">🗑 Очистить всю историю</button>
+</div>
+
+<div id="historyPageList"></div>
+
+<script>
+const user = localStorage.getItem('currentUser');
+const list = document.getElementById('historyPageList');
+
+// Загрузка списка истории
+async function loadHistory() {
+    if(!user) {
+        list.innerHTML = "<p style='text-align:center; padding:40px; opacity:0.5;'>Войдите в аккаунт, чтобы видеть историю</p>";
+        return;
+    }
+    
+    try {
+        const res = await fetch(`http://localhost:3000/history/${user}`);
+        const data = await res.json();
+        
+        if(!data || data.length === 0) {
+            list.innerHTML = "<p style='text-align:center; opacity:0.5; padding:40px;'>История пуста</p>";
+            return;
+        }
+
+        list.innerHTML = data.map(item => `
+            <div class="history-item" id="hist-item-${item.history_id}">
+                <video class="thumb" src="${item.url}#t=0.5" onclick="location.href='watch.html?v=${item.id}'"></video>
+                
+                <div class="info-block" onclick="location.href='watch.html?v=${item.id}'">
+                    <div class="title">${item.title}</div>
+                    <div class="time">Просмотрено: ${new Date(item.watched_at).toLocaleString('ru-RU')}</div>
+                </div>
+
+                <button class="delete-one" title="Удалить из истории" onclick="deleteHistoryItem(${item.history_id})">✕</button>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = "<p style='text-align:center; color:#ff4444; padding:20px;'>Ошибка связи с сервером</p>";
+    }
+}
+
+// Удаление одного видео
+async function deleteHistoryItem(histId) {
+    if(!confirm('Удалить это видео из истории?')) return;
+
+    try {
+        const res = await fetch(`http://localhost:3000/history/item/${histId}`, {
+            method: 'DELETE'
+        });
+
+        if(res.ok) {
+            const el = document.getElementById(`hist-item-${histId}`);
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(20px)';
+            setTimeout(() => el.remove(), 300);
+        }
+    } catch (e) {
+        alert("Не удалось удалить");
+    }
+}
+
+// Очистка всей истории
+document.getElementById('clearAll').onclick = async () => {
+    if(!user) return;
+    if(confirm('Очистить всю вашу историю просмотров?')) {
+        await fetch(`http://localhost:3000/history/${user}`, { method: 'DELETE' });
+        loadHistory();
+    }
+};
+
+window.onload = loadHistory;
+</script>
+
+</body>
+</html>
