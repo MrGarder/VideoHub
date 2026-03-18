@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: VideoHub
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: "cd yt-project && npm install"
+    startCommand: "cd yt-project && node server.js"
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Сюда он сам подставит твою базу, если она в одном проекте
