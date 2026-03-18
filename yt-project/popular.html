@@ -108,16 +108,16 @@
   async function loadPopular() {
     const grid = document.getElementById('popularGrid');
     try {
-      const res = await fetch('http://localhost:3000/videos');
+      // ИСПРАВЛЕНО: относительный путь для работы на хостинге
+      const res = await fetch('/videos');
       const videos = await res.json();
       
-      console.log("Данные с сервера:", videos); // ПРОВЕРЬ ЭТО В КОНСОЛИ (F12)
+      console.log("Данные с сервера:", videos);
 
-      // Сортировка
+      // Сортировка по популярности (просмотры + лайки*2)
       videos.sort((a, b) => ((b.views || 0) + (b.likes || 0) * 2) - ((a.views || 0) + (a.likes || 0) * 2));
 
       grid.innerHTML = videos.slice(0, 20).map((v, index) => {
-        // Если thumbnail_url пустой, используем заглушку или первый кадр видео
         const thumb = v.thumbnail_url ? `<img src="${v.thumbnail_url}">` : `<img src="https://via.placeholder.com/640x360/111/444?text=No+Thumbnail" style="opacity:0.5">`;
         
         return `
