@@ -189,7 +189,6 @@
   // Инициализация Google при загрузке страницы
   window.onload = function () {
       google.accounts.id.initialize({
-          // ТВОЙ ID уже здесь:
           client_id: "897716797553-spvtnmo96h8mnn9tioa4t4ir1iqv60qh.apps.googleusercontent.com", 
           callback: handleGoogleResponse
       });
@@ -199,14 +198,13 @@
           { 
               theme: "outline", 
               size: "large", 
-              width: 350, // Подобрано под размер твоей карточки
+              width: 350, 
               text: "continue_with",
               shape: "pill" 
           } 
       );
   }
 
-  // Функция для чтения данных из зашифрованного токена Google (JWT)
   function parseJwt (token) {
     var base64Url = token.split('.')[1];
     var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -216,18 +214,16 @@
     return JSON.parse(jsonPayload);
   };
 
-  // Обработка ответа от Google
   async function handleGoogleResponse(response) {
       const userData = parseJwt(response.credential);
       console.log("Пользователь Google:", userData);
       
-      // Сначала сохраняем данные локально, чтобы ассистент их увидел
       localStorage.setItem('currentUser', userData.given_name);
       localStorage.setItem('userPic', userData.picture);
 
-      // Теперь отправляем токен на твой сервер Node.js
       try {
-          const res = await fetch('http://localhost:3000/google-auth', {
+          // ИСПРАВЛЕНО: заменен localhost:3000 на относительный путь
+          const res = await fetch('/google-auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: response.credential })
@@ -241,7 +237,6 @@
               window.location.href = "index.html"; 
           }
       } catch (error) {
-          // Если сервер не запущен, всё равно пускаем (для теста фронтенда)
           alert("Вход выполнен локально (Сервер офлайн). Привет, " + userData.given_name);
           window.location.href = "index.html";
       }
@@ -272,7 +267,6 @@
   }
 
   async function submitForm() {
-    // Твой код отправки обычной формы (Email/Пароль) остается без изменений
     alert("Функция обычной отправки вызвана");
   }
 </script>
