@@ -161,7 +161,7 @@
 
   <div id="fields">
     <input id="loginInput" class="input" type="text" placeholder="Email или Логин">
-    <input id="pass" class="input" type="password" placeholder="Пароль">
+    <input id="passInput" class="input" type="password" placeholder="Пароль">
   </div>
 
   <button class="btn-main" onclick="submitForm()">Продолжить</button>
@@ -213,9 +213,7 @@
 
   async function handleGoogleResponse(response) {
       const userData = parseJwt(response.credential);
-      console.log("Пользователь Google:", userData);
       
-      // Сразу сохраняем имя, чтобы upload.html его видел
       localStorage.setItem('currentUser', userData.given_name);
       localStorage.setItem('userPic', userData.picture);
 
@@ -225,13 +223,7 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: response.credential })
           });
-
-          if (res.ok) {
-              alert("👋 Добро пожаловать, " + userData.given_name);
-              window.location.href = "index.html";
-          } else {
-              window.location.href = "index.html"; 
-          }
+          window.location.href = "index.html";
       } catch (error) {
           window.location.href = "index.html";
       }
@@ -261,27 +253,23 @@
     }
   }
 
-  // ОСНОВНАЯ ФУНКЦИЯ ОТПРАВКИ (ИСПРАВЛЕНО)
   async function submitForm() {
-    const endpoint = mode === "login" ? "/login" : "/register";
-    let payload = {};
+    // Находим поля в зависимости от текущего режима
+    const loginVal = mode === "login" 
+      ? document.getElementById("loginInput").value 
+      : document.getElementById("usernameInput").value;
+    
+    const passVal = document.getElementById("passInput").value;
+    const emailVal = mode === "register" ? document.getElementById("emailInput").value : null;
 
-    if (mode === "register") {
-        payload = {
-            username: document.getElementById("usernameInput").value,
-            email: document.getElementById("emailInput").value,
-            password: document.getElementById("passInput").value
-        };
-    } else {
-        payload = {
-            username: document.getElementById("loginInput").value,
-            password: document.getElementById("passInput").value
-        };
-    }
-
-    if (!payload.username || !payload.password) {
+    if (!loginVal || !passVal) {
         return alert("Заполните все поля!");
     }
+
+    const endpoint = mode === "login" ? "/login" : "/register";
+    const payload = mode === "login" 
+      ? { username: loginVal, password: passVal }
+      : { username: loginVal, email: emailVal, password: passVal };
 
     try {
         const response = await fetch(endpoint, {
@@ -293,16 +281,15 @@
         const data = await response.json();
 
         if (response.ok) {
-            // КРИТИЧНО: сохраняем имя в localStorage для загрузки видео
-            localStorage.setItem('currentUser', data.username || payload.username);
+            localStorage.setItem('currentUser', data.username || loginVal);
             alert(mode === "login" ? "С возвращением!" : "Регистрация успешна!");
             window.location.href = "index.html";
         } else {
-            alert("Ошибка: " + (data.error || "Что-то пошло не так"));
+            alert("Ошибка: " + (data.error || "Неверные данные"));
         }
     } catch (err) {
         console.error(err);
-        alert("Не удалось связаться с сервером. Проверьте Render!");
+        alert("Сервер не отвечает. Проверь статус на Render!");
     }
   }
 </script>
