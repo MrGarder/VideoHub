@@ -101,7 +101,7 @@
     .dropdown-content {
       display: none; position: absolute; top: 40px; right: 0;
       background: #1a1a24; border: 1px solid var(--accent);
-      border-radius: 12px; min-width: 170px; z-index: 100;
+      border-radius: 12px; min-width: 170px; z-index: 110; /* Изменено на 110 */
       box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;
     }
     .dropdown-content button { width: 100%; padding: 12px 15px; background: none; border: none; color: #fff; text-align: left; cursor: pointer; font-size: 13px; transition: 0.2s; }
@@ -194,6 +194,7 @@
   </div>
 
   <script>
+    const API_URL = "https://videohub-c48i.onrender.com"; // Добавлен адрес API
     let allVideosData = [];
     const sidebar = document.getElementById("sidebar");
     const menuBtn = document.getElementById("menuBtn");
@@ -281,7 +282,6 @@
             ? `<img src="${v.thumbnail_url}" alt="thumb"><video src="${v.url}" muted loop preload="none"></video>`
             : `<video src="${v.url}#t=0.1" muted loop preload="metadata" style="opacity:1; z-index:2;"></video>`;
           
-          // ИСПОЛЬЗУЕМ v._id ДЛЯ MONGODB
           return `
             <div class="video-card" onclick="location.href='watch.html?v=${v._id}'" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)">
               <div class="thumb-wrapper">${mediaHtml}</div>
@@ -400,7 +400,6 @@
       const username = localStorage.getItem('currentUser');
       const authSection = document.getElementById("authSection");
       if (username) {
-        // ДОБАВЛЕНА КНОПКА АДМИНКИ ДЛЯ MrGarder
         let adminBtn = (username === 'MrGarder') ? `<button onclick="location.href='admin.html'" style="border:1px solid gold; color:gold">⚙ Админка</button>` : '';
         
         authSection.innerHTML = `
@@ -426,7 +425,7 @@
 
     async function fetchVideos() {
       try {
-        const res = await fetch('/videos');
+        const res = await fetch(API_URL + '/videos'); // Использование API_URL
         allVideosData = await res.json();
         renderVideos(allVideosData);
         checkMiniPlayer(); 
