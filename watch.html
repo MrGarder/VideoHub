@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>VideoHub — Просмотр</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg1: #1e1e2f;
+      --glass: rgba(255,255,255,0.04);
+      --text: #fff;
+      --accent:#6b5cff;
+      --muted: rgba(255,255,255,0.7);
+    }
+    html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background: linear-gradient(135deg,#11111a,#1b1630);color:var(--text);-webkit-font-smoothing:antialiased}
+    
+    .topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:20;backdrop-filter: blur(10px);}
+    
+    .back-btn {
+      background: rgba(140,70,255,.25); border: 1px solid rgba(140,70,255,.45);
+      color: #dcd1ff; padding: 6px 14px; margin-right: 12px; border-radius: 10px;
+      font-size: 16px; cursor: pointer; transition: .25s;
+    }
+    .back-btn:hover { background: rgba(140,70,255,.45); }
+
+    .container{display:flex;gap:20px;padding:18px;max-width:1300px;margin:0 auto}
+    .player-column{flex:2;min-width:0}
+    .side-column{flex:1;max-width:360px}
+    
+    video{width:100%;border-radius:12px;background:black; aspect-ratio: 16/9; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
+    .title{margin-top:12px;font-size:22px;font-weight:700}
+
+    .video-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .channel-left{display:flex;gap:12px;align-items:center;min-width:0; cursor: pointer;}
+    
+    .avatar{
+        width:48px; height:48px; border-radius:50%; 
+        background:linear-gradient(135deg,#8b5cf6,#5143ff); 
+        flex-shrink:0; display: flex; align-items: center; justify-content: center; 
+        font-weight: bold; font-size: 20px; 
+        background-size: cover; background-position: center;
+    }
+
+    .channel-info{min-width:0}
+    .channel-info .name{font-weight:700;font-size:16px;}
+
+    .engage-row{display:flex;align-items:center;gap:12px}
+    .like-bar{display:flex;align-items:center;background:rgba(255,255,255,0.07);padding:4px;border-radius:20px;border: 1px solid rgba(255,255,255,0.05);}
+    .like-btn, .dislike-btn{background:transparent;border:none;color:var(--text);cursor:pointer;padding:6px 14px;border-radius:18px;display:flex;align-items:center;gap:8px;transition: 0.2s;}
+    .like-btn:hover, .dislike-btn:hover{background:rgba(255,255,255,0.1)}
+    .like-btn.active { color: #8b5cf6; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .dislike-btn.active { color: #ff4e4e; background: rgba(255, 78, 78, 0.2); border: 1px solid rgba(255, 78, 78, 0.3); }
+
+    .subscribe-btn{padding:10px 20px;border-radius:20px;border:none;background:var(--text);color:#000;cursor:pointer;font-weight:700;transition:0.2s}
+    .subscribe-btn.active{background:rgba(255,255,255,0.1);color:var(--text); border: 1px solid rgba(255,255,255,0.2);}
+
+    .desc{margin-top:14px;background:rgba(255,255,255,0.04);padding:14px;border-radius:12px;font-size:14px;line-height:1.5; white-space: pre-wrap;}
+    
+    .comments{margin-top:25px}
+    .comment-form textarea{width:100%;min-height:40px;padding:10px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;transition:0.3s}
+    .comment-form textarea:focus{border-bottom:2px solid var(--accent)}
+    .send-btn{margin-top:8px;padding:8px 16px;border-radius:18px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight: 600; float:right}
+
+    .side-card{display:flex;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition: 0.2s; align-items: center;}
+    .side-card:hover{background:rgba(255,255,255,0.05)}
+    .side-thumb-wrapper{width:140px;height:80px;border-radius:8px;overflow: hidden; flex-shrink:0; background: #000;}
+    .side-thumb{width:100%;height:100%;object-fit:cover; transition: transform 0.3s ease;}
+    .side-card:hover .side-thumb { transform: scale(1.05); }
+    
+    .side-info .title-small{font-weight:600;font-size:14px;line-height:1.2;margin-bottom:4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;}
+    .side-info .meta-small{font-size:12px;color:var(--muted)}
+
+    /* --- МОБИЛЬНАЯ ВЕРСИЯ --- */
+    @media (max-width: 900px) {
+      .container { flex-direction: column; padding: 10px; }
+      .side-column { max-width: 100%; }
+      .player-column { width: 100%; }
+      .video-meta { flex-direction: column; align-items: flex-start; gap: 15px; }
+      .engage-row { width: 100%; justify-content: space-between; }
+      .title { font-size: 18px; }
+      .side-thumb-wrapper { width: 120px; height: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back-btn" onclick="goBack()">← Назад</button>
+  <b style="font-size:20px; cursor:pointer;" onclick="goBack()">Video<span>Hub</span></b>
+</div>
+
+<div class="container">
+  <div class="player-column">
+    <video id="player" controls autoplay></video>
+
+    <div id="videoTitle" class="title">Загрузка...</div>
+
+    <div class="video-meta">
+      <div class="channel-left" id="authorLink">
+        <div class="avatar" id="authorAvatar">?</div>
+        <div class="channel-info">
+          <div id="authorName" class="name">Автор</div>
+          <div style="font-size:12px;color:var(--muted)" id="authorSubCount">0 подписчиков</div>
+        </div>
+      </div>
+
+      <div class="engage-row">
+        <div class="like-bar">
+          <button id="likeBtn" class="like-btn">👍 <span id="likeCount">0</span></button>
+          <button id="dislikeBtn" class="dislike-btn">👎</button>
+        </div>
+        <button class="subscribe-btn" id="subBtn">Подписаться</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;color:var(--muted);font-size:14px" id="videoStats">0 просмотров • Загрузка...</div>
+
+    <div class="desc">
+      <div id="descText">Описание отсутствует.</div>
+    </div>
+
+    <div class="comments">
+      <h3>Комментарии</h3>
+      <div class="comment-form">
+        <textarea id="commentInput" placeholder="Оставьте комментарий..."></textarea>
+        <button class="send-btn">Отправить</button>
+      </div>
+      <div id="commentsList" style="margin-top:40px;"></div>
+    </div>
+  </div>
+
+  <aside class="side-column">
+    <h4 style="margin-top:0;">Рекомендуем</h4>
+    <div id="recommendedList"></div>
+  </aside>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(location.search);
+const videoId = urlParams.get('v');
+const currentUser = localStorage.getItem('currentUser');
+let currentVideoData = null; 
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function goToChannel(name) {
+    const cleanName = name.replace('@', '');
+    location.href = `profile.html?user=${cleanName}`;
+}
+
+function goBack() {
+    const player = document.getElementById('player');
+    if (currentVideoData && player && !player.ended && player.currentTime > 0) {
+        const miniData = {
+            id: currentVideoData.id,
+            title: currentVideoData.title,
+            url: currentVideoData.url,
+            time: player.currentTime
+        };
+        localStorage.setItem('lastWatched', JSON.stringify(miniData));
+    }
+    location.href = 'index.html';
+}
+
+async function initWatchPage() {
+    if (!videoId) return location.href = 'index.html';
+    
+    localStorage.removeItem('lastWatched');
+
+    try {
+        const res = await fetch('/videos');
+        const allVideos = await res.json();
+        const video = allVideos.find(v => v.id == videoId);
+        
+        if (!video) {
+            document.getElementById('videoTitle').innerText = "Видео не найдено";
+            return;
+        }
+
+        currentVideoData = video;
+        const authorName = video.author_name;
+
+        const player = document.getElementById('player');
+        player.src = video.url;
+        if(video.thumbnail_url) player.poster = video.thumbnail_url;
+        
+        document.getElementById('videoTitle').innerText = video.title;
+        document.getElementById('descText').innerText = video.description || "Нет описания";
+        document.getElementById('videoStats').innerText = `${video.views || 0} просмотров • ${formatDate(video.created_at)}`;
+
+        const profileData = JSON.parse(localStorage.getItem(`profile_${authorName}`) || '{}');
+        const avatarDiv = document.getElementById('authorAvatar');
+        document.getElementById('authorName').innerText = "@" + authorName;
+
+        if (profileData.avatar) {
+            avatarDiv.innerText = '';
+            avatarDiv.style.backgroundImage = `url(${profileData.avatar})`;
+        } else {
+            avatarDiv.innerText = authorName[0].toUpperCase();
+            avatarDiv.style.backgroundImage = 'none';
+        }
+        document.getElementById('authorLink').onclick = () => goToChannel(authorName);
+
+        const subRes = await fetch(`/subscribe/count/${authorName}`);
+        const subData = await subRes.json();
+        document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
+
+        fetch(`/videos/${video.id}/view`, { method: 'POST' });
+        if (currentUser) {
+            fetch('/history/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: currentUser, videoId: video.id })
+            });
+        }
+
+        loadLikesStatus();
+        loadSubStatus(authorName);
+        renderRecommended(allVideos, video.id);
+        loadComments();
+        
+    } catch (err) { console.error("Ошибка:", err); }
+}
+
+async function loadLikesStatus() {
+    const res = await fetch(`/videos/${videoId}/likes-status?username=${currentUser || ''}`);
+    const data = await res.json();
+    document.getElementById('likeCount').innerText = data.count;
+    const lBtn = document.getElementById('likeBtn');
+    const dBtn = document.getElementById('dislikeBtn');
+    if(data.isLiked) lBtn.classList.add('active'); else lBtn.classList.remove('active');
+    if(data.isDisliked) dBtn.classList.add('active'); else dBtn.classList.remove('active');
+}
+
+async function loadSubStatus(authorName) {
+    if(!currentUser || currentUser === authorName) return;
+    const res = await fetch(`/subscribe/status?follower=${currentUser}&authorName=${authorName}`);
+    const data = await res.json();
+    const subBtn = document.getElementById('subBtn');
+    if(data.subscribed) {
+        subBtn.innerText = "Вы подписаны";
+        subBtn.classList.add('active');
+    }
+}
+
+document.getElementById('likeBtn').onclick = async function() {
+    if(!currentUser) return alert("Войдите в аккаунт!");
+    await fetch(`/videos/${videoId}/like`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: currentUser })
+    });
+    loadLikesStatus(); 
+};
+
+document.getElementById('dislikeBtn').onclick = async function() {
+    if(!currentUser) return alert("Войдите в аккаунт!");
+    await fetch(`/videos/${videoId}/dislike`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: currentUser })
+    });
+    loadLikesStatus(); 
+};
+
+document.getElementById('subBtn').onclick = async function() {
+    if(!currentUser) return alert("Войдите в аккаунт!");
+    const authorName = document.getElementById('authorName').innerText.replace('@', '');
+    if(currentUser === authorName) return alert("Это ваш канал");
+
+    const res = await fetch(`/subscribe`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ follower: currentUser, authorName: authorName })
+    });
+    const data = await res.json();
+    this.innerText = (data.status === 'subscribed') ? "Вы подписаны" : "Подписаться";
+    this.classList.toggle('active', data.status === 'subscribed');
+    const subRes = await fetch(`/subscribe/count/${authorName}`);
+    const subData = await subRes.json();
+    document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
+};
+
+function renderRecommended(videos, currentId) {
+    const list = document.getElementById('recommendedList');
+    const recs = videos.filter(v => v.id != currentId).slice(0, 10);
+    list.innerHTML = recs.map(v => {
+        const thumbSrc = v.thumbnail_url ? v.thumbnail_url : `${v.url}#t=0.1`;
+        const thumbTag = v.thumbnail_url 
+            ? `<img src="${thumbSrc}" class="side-thumb">` 
+            : `<video src="${thumbSrc}" class="side-thumb" muted></video>`;
+
+        return `
+        <div class="side-card" onclick="location.href='watch.html?v=${v.id}'">
+            <div class="side-thumb-wrapper">${thumbTag}</div>
+            <div class="side-info">
+                <div class="title-small">${v.title}</div>
+                <div class="meta-small">@${v.author_name}</div>
+                <div class="meta-small">${v.views || 0} просмотров</div>
+            </div>
+        </div>
+    `}).join('');
+}
+
+async function loadComments() {
+    const res = await fetch(`/videos/${videoId}/comments`);
+    const comments = await res.json();
+    const list = document.getElementById('commentsList');
+    if (comments.length === 0) {
+        list.innerHTML = '<p style="color: #888;">Нет комментариев.</p>';
+        return;
+    }
+    list.innerHTML = comments.map(c => `
+        <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                <b style="color: var(--accent); cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
+                <small style="color: #666;">${formatDate(c.created_at)}</small>
+            </div>
+            <div style="font-size: 14px; color: #ddd;">${c.comment_text}</div>
+        </div>
+    `).join('');
+}
+
+document.querySelector('.send-btn').onclick = async function() {
+    const text = document.getElementById('commentInput').value;
+    if (!currentUser) return alert("Войдите!");
+    if (!text.trim()) return;
+    const res = await fetch(`/videos/${videoId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser, text: text })
+    });
+    if (res.ok) {
+        document.getElementById('commentInput').value = '';
+        loadComments();
+    }
+};
+
+window.onload = initWatchPage;
+</script>
+</body>
+</html>

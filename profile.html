@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>VideoHub — Профиль</title>
+  <style>
+    :root { --accent: #8b5cf6; --bg: #0d0b14; --text: #e5e1ff; }
+    body { 
+        margin: 0; font-family: 'Inter', sans-serif; background: #0b0912; color: var(--text);
+        background: linear-gradient(135deg, #0d0b14 0%, #161225 100%); min-height: 100vh;
+    }
+    
+    .topbar { 
+        position: fixed; top: 0; width: 100%; height: 60px; background: rgba(13,11,20,0.8);
+        backdrop-filter: blur(10px); display: flex; align-items: center; padding: 0 20px; z-index: 100;
+        border-bottom: 1px solid rgba(255,255,255,0.05); box-sizing: border-box;
+    }
+    .back-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .back-btn:hover { background: var(--accent); }
+
+    .banner-container { position: relative; height: 250px; background: #1a1a1a; overflow: hidden; margin-top: 60px; }
+    #bannerImg { width: 100%; height: 100%; object-fit: cover; }
+    
+    .profile-header { display: flex; align-items: flex-end; gap: 20px; padding: 0 40px; transform: translateY(-40px); }
+    #userAvatar { 
+        width: 130px; height: 130px; border-radius: 50%; border: 5px solid #0b0912;
+        background: linear-gradient(45deg, #5143ff, #8b5cf6); object-fit: cover;
+        display: flex; align-items: center; justify-content: center; font-size: 50px; font-weight: bold;
+        background-position: center;
+    }
+    .user-info h1 { margin: 0; font-size: 32px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .controls { margin-left: auto; display: flex; gap: 10px; padding-bottom: 10px; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; padding: 20px 40px; }
+    .video-card { position: relative; background: rgba(255,255,255,0.03); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+    .video-card:hover { transform: translateY(-5px); border-color: var(--accent); background: rgba(255,255,255,0.06); }
+    
+    .thumb-nav { position: relative; cursor: pointer; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    
+    .thumb-nav video { 
+        width: 100%; height: 100%; object-fit: cover; display: block; background: #000;
+        position: relative; z-index: 1;
+    }
+    .main-thumb {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 2; transition: opacity 0.3s ease;
+    }
+
+    .btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn-edit { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1); }
+    .btn-upload { background: var(--accent); color: white; }
+    .btn-sub { background: #fff; color: #000; }
+    .btn-sub.active { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+
+    .card-info { padding: 15px; }
+    .card-info b { display: block; margin-bottom: 5px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .admin-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; opacity: 0; transition: 0.2s; z-index: 10; }
+    .video-card:hover .admin-actions { opacity: 1; }
+    .action-btn { border: none; padding: 6px; border-radius: 6px; cursor: pointer; color: white; font-size: 12px; }
+    .del-btn { background: rgba(255, 60, 60, 0.9); }
+    .edit-v-btn { background: rgba(60, 160, 255, 0.9); }
+
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(5px); }
+    .modal-content { background:#1a1629; padding:30px; border-radius:20px; width:90%; max-width:400px; border: 1px solid rgba(255,255,255,0.1); }
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #0c0a16; border: 1px solid #222; color: #fff; border-radius: 10px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back-btn" onclick="location.href='index.html'">← На главную</button>
+</div>
+
+<div class="banner-container">
+  <img id="bannerImg" src="https://i.imgur.com/YcZpYh4.jpeg">
+</div>
+
+<div class="profile-header">
+  <div id="userAvatar">?</div>
+  <div class="user-info">
+    <h1 id="displayUsername">Загрузка...</h1>
+    <p style="color:#888" id="videoStats">Загрузка данных...</p>
+  </div>
+  <div class="controls" id="profileControls"></div>
+</div>
+
+<div class="grid" id="myVideos"></div>
+
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h3>Настройки канала</h3>
+    <label>Публичное имя</label>
+    <input type="text" id="newName" placeholder="Введите имя...">
+    <label>Аватарка</label>
+    <input type="file" accept="image/*" id="avatarInput">
+    <label>Баннер</label>
+    <input type="file" accept="image/*" id="bannerInput">
+    <button class="btn btn-upload" style="width:100%; margin-top:15px" onclick="saveProfile()">Сохранить изменения</button>
+    <button class="btn btn-edit" style="width:100%; margin-top:10px;" onclick="closeModals()">Отмена</button>
+  </div>
+</div>
+
+<div id="editVideoModal" class="modal">
+  <div class="modal-content">
+    <h3>Редактировать видео</h3>
+    <input type="hidden" id="editVideoId">
+    <input type="text" id="editVTitle">
+    <button class="btn btn-upload" style="width:100%; margin-top:15px" onclick="saveVideoChanges()">Сохранить</button>
+    <button class="btn btn-edit" style="width:100%; margin-top:10px;" onclick="closeModals()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+  const currentUser = localStorage.getItem('currentUser');
+  const urlParams = new URLSearchParams(location.search);
+  const targetUser = urlParams.get('user') || currentUser;
+
+  function openModal(id) { document.getElementById(id).style.display='flex'; }
+  function closeModals() { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
+
+  async function load() {
+    try {
+        const [vidRes, subRes] = await Promise.all([
+            fetch('/videos'),
+            fetch(`/subscribe/count/${targetUser}`)
+        ]);
+        
+        const all = await vidRes.json();
+        const subs = await subRes.json();
+        const userVideos = all.filter(v => v.author_name === targetUser);
+        
+        const profileData = JSON.parse(localStorage.getItem(`profile_${targetUser}`) || '{}');
+        document.getElementById('displayUsername').innerText = profileData.name || `@${targetUser}`;
+        document.getElementById('videoStats').innerText = `${subs.count || 0} подписчиков • ${userVideos.length} видео`;
+        
+        const avatarEl = document.getElementById('userAvatar');
+        if(profileData.avatar) {
+            avatarEl.innerHTML = '';
+            avatarEl.style.backgroundImage = `url(${profileData.avatar})`;
+            avatarEl.style.backgroundSize = 'cover';
+        } else {
+            avatarEl.innerText = targetUser ? targetUser[0].toUpperCase() : '?';
+            avatarEl.style.backgroundImage = 'none';
+        }
+        if(profileData.banner) document.getElementById('bannerImg').src = profileData.banner;
+
+        const controls = document.getElementById('profileControls');
+        if (targetUser === currentUser) {
+            controls.innerHTML = `<button class="btn btn-edit" onclick="openModal('editModal')">⚙️ Настроить</button>`;
+        } else {
+            const statusRes = await fetch(`/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
+            const status = await statusRes.json();
+            controls.innerHTML = `<button class="btn btn-sub ${status.subscribed ? 'active' : ''}" id="mainSubBtn">${status.subscribed ? 'Вы подписаны' : 'Подписаться'}</button>`;
+            document.getElementById('mainSubBtn').onclick = toggleSubscribe;
+        }
+
+        document.getElementById('myVideos').innerHTML = userVideos.map(v => {
+            const hasThumb = v.thumbnail_url && v.thumbnail_url !== 'null';
+            return `
+              <div class="video-card">
+                ${targetUser === currentUser ? `
+                  <div class="admin-actions">
+                    <button class="action-btn edit-v-btn" onclick="openEditVideo(${v.id}, '${v.title.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="action-btn del-btn" onclick="del(${v.id})">🗑</button>
+                  </div>
+                ` : ''}
+                <div class="thumb-nav" onclick="location.href='watch.html?v=${v.id}'" 
+                     onmouseenter="this.querySelector('video').play(); if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
+                     onmouseleave="const vid=this.querySelector('video'); vid.pause(); vid.currentTime=0.1; if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
+                    
+                    <video src="${v.url}#t=0.1" muted loop preload="metadata" playsinline></video>
+                    
+                    ${hasThumb ? `<img src="${v.thumbnail_url}" class="main-thumb">` : ''}
+                </div>
+                <div class="card-info">
+                    <b>${v.title}</b>
+                    <div style="display: flex; justify-content: space-between; color: #888; font-size: 13px;">
+                        <span>👁 ${v.views || 0}</span>
+                        <span>❤️ ${v.likes || 0}</span>
+                    </div>
+                </div>
+              </div>
+            `;
+        }).join('');
+    } catch(e) {
+        console.error("Ошибка загрузки профиля:", e);
+    }
+  }
+
+  function saveProfile() {
+      const newName = document.getElementById('newName').value;
+      const avatarInput = document.getElementById('avatarInput');
+      const bannerInput = document.getElementById('bannerInput');
+      
+      let profileData = JSON.parse(localStorage.getItem(`profile_${currentUser}`) || '{}');
+      if(newName) profileData.name = newName;
+
+      const readAndSave = (input, key, callback) => {
+          if(input.files && input.files[0]) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                  profileData[key] = e.target.result;
+                  callback();
+              };
+              reader.readAsDataURL(input.files[0]);
+          } else callback();
+      };
+
+      readAndSave(avatarInput, 'avatar', () => {
+          readAndSave(bannerInput, 'banner', () => {
+              localStorage.setItem(`profile_${currentUser}`, JSON.stringify(profileData));
+              location.reload();
+          });
+      });
+  }
+
+  async function toggleSubscribe() {
+      await fetch('/subscribe', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ follower: currentUser, authorName: targetUser })
+      });
+      load(); 
+  }
+
+  async function del(id) {
+    if(confirm('Удалить видео?')) {
+        await fetch(`/delete-video/${id}`, { method:'DELETE' });
+        load();
+    }
+  }
+
+  function openEditVideo(id, title) {
+      document.getElementById('editVideoId').value = id;
+      document.getElementById('editVTitle').value = title;
+      openModal('editVideoModal');
+  }
+
+  async function saveVideoChanges() {
+      const id = document.getElementById('editVideoId').value;
+      const title = document.getElementById('editVTitle').value;
+      await fetch(`/videos/${id}`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ title })
+      });
+      closeModals(); load();
+  }
+
+  window.onload = load;
+</script>
+</body>
+</html>

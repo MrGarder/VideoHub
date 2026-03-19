@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка видео — VideoHub</title>
+    <style>
+        :root {
+            --accent: #6b5cff;
+            --bg: #11111a;
+            --card: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body { 
+            background: radial-gradient(circle at top right, #1b1630, #11111a); 
+            color: white; 
+            font-family: 'Inter', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .upload-card { 
+            background: var(--card); 
+            padding: 40px; 
+            border-radius: 24px; 
+            width: 100%;
+            max-width: 450px; 
+            border: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        h2 { margin-bottom: 25px; font-weight: 700; text-align: center; letter-spacing: -0.5px; }
+
+        /* Стили для Drag & Drop зоны */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: 0.3s;
+            cursor: pointer;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.02);
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(107, 92, 255, 0.05);
+        }
+        .drop-zone p { margin: 0; font-size: 14px; opacity: 0.6; }
+        .drop-zone .icon { font-size: 30px; display: block; margin-bottom: 10px; }
+
+        input[type="text"], textarea { 
+            width: 100%; padding: 14px; margin: 10px 0; 
+            border-radius: 12px; border: 1px solid var(--border); 
+            background: rgba(0,0,0,0.3); color: white; 
+            box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); background: rgba(0,0,0,0.5); }
+
+        /* Скрываем стандартные инпуты файлов */
+        input[type="file"] { display: none; }
+
+        .file-info { font-size: 12px; color: var(--accent); margin-top: 5px; display: none; }
+
+        button { 
+            width: 100%; padding: 15px; border-radius: 12px; border: none; 
+            background: linear-gradient(135deg, var(--accent), #5143ff); 
+            color: white; font-weight: bold; cursor: pointer; 
+            margin-top: 20px; transition: 0.3s; font-size: 16px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(107, 92, 255, 0.3); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Прогресс бар */
+        .progress-container {
+            width: 100%; background: rgba(255,255,255,0.1); 
+            height: 6px; border-radius: 10px; margin-top: 20px; display: none;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%; height: 100%; background: var(--accent);
+            box-shadow: 0 0 10px var(--accent); transition: width 0.3s;
+        }
+
+        .back-link { 
+            display: block; text-align: center; margin-top: 20px; 
+            color: rgba(255,255,255,0.4); text-decoration: none; font-size: 13px; 
+        }
+        .back-link:hover { color: white; }
+    </style>
+</head>
+<body>
+
+<div class="upload-card">
+    <h2>Загрузить видео</h2>
+    
+    <div class="drop-zone" onclick="document.getElementById('videoFile').click()" id="videoDrop">
+        <span class="icon">🎬</span>
+        <p id="videoLabel">Выберите или перетащите видео</p>
+        <div class="file-info" id="videoName"></div>
+    </div>
+    <input type="file" id="videoFile" accept="video/*">
+
+    <div class="drop-zone" onclick="document.getElementById('thumbFile').click()" id="thumbDrop" style="padding: 15px;">
+        <span class="icon" style="font-size: 20px;">🖼</span>
+        <p id="thumbLabel" style="font-size: 12px;">Обложка (необязательно)</p>
+        <div class="file-info" id="thumbName"></div>
+    </div>
+    <input type="file" id="thumbFile" accept="image/*">
+
+    <input type="text" id="title" placeholder="Название видео">
+    <textarea id="desc" placeholder="Описание" rows="3"></textarea>
+
+    <button id="uploadBtn">Опубликовать видео</button>
+
+    <div class="progress-container" id="progressCont">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <p id="status" style="text-align:center; font-size:14px; margin-top:15px;"></p>
+    
+    <a href="index.html" class="back-link">← Вернуться на главную</a>
+</div>
+
+<script>
+    const videoInput = document.getElementById('videoFile');
+    const thumbInput = document.getElementById('thumbFile');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    // Функция для отображения имени выбранного файла
+    function handleFileSelect(input, labelId, infoId) {
+        const file = input.files[0];
+        if (file) {
+            document.getElementById(labelId).innerText = "Файл выбран ✅";
+            document.getElementById(infoId).style.display = "block";
+            document.getElementById(infoId).innerText = file.name;
+        }
+    }
+
+    videoInput.onchange = () => handleFileSelect(videoInput, 'videoLabel', 'videoName');
+    thumbInput.onchange = () => handleFileSelect(thumbInput, 'thumbLabel', 'thumbName');
+
+    // Логика Drag & Drop
+    [ {id:'videoDrop', input:'videoFile'}, {id:'thumbDrop', input:'thumbFile'} ].forEach(item => {
+        const zone = document.getElementById(item.id);
+        zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('drag-over'); };
+        zone.ondragleave = () => zone.classList.remove('drag-over');
+        zone.ondrop = (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                document.getElementById(item.input).files = files;
+                document.getElementById(item.input).onchange();
+            }
+        };
+    });
+
+    uploadBtn.onclick = async () => {
+        const video = videoInput.files[0];
+        const thumb = thumbInput.files[0];
+        const title = document.getElementById('title').value.trim();
+        const desc = document.getElementById('desc').value.trim();
+        const user = localStorage.getItem('currentUser');
+
+        if (!video || !title) {
+            alert("Нужно выбрать видео и дать ему название!");
+            return;
+        }
+
+        if (!user) {
+            alert("Вы не авторизованы!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('video', video);
+        if(thumb) formData.append('thumbnail', thumb);
+        formData.append('title', title);
+        formData.append('description', desc);
+        formData.append('username', user);
+
+        // Показываем прогресс-бар
+        uploadBtn.disabled = true;
+        uploadBtn.innerText = "Загрузка...";
+        document.getElementById('progressCont').style.display = "block";
+        const pBar = document.getElementById('progressBar');
+
+        // Используем XMLHttpRequest для отслеживания прогресса
+        const xhr = new XMLHttpRequest();
+        // ИСПРАВЛЕНО: относительный путь вместо localhost
+        xhr.open('POST', '/upload', true);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                pBar.style.width = percent + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                alert("Видео успешно опубликовано!");
+                location.href = 'index.html';
+            } else {
+                alert("Ошибка: " + xhr.responseText);
+                resetBtn();
+            }
+        };
+
+        xhr.onerror = () => {
+            alert("Ошибка сети!");
+            resetBtn();
+        };
+
+        xhr.send(formData);
+    };
+
+    function resetBtn() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerText = "Опубликовать видео";
+        document.getElementById('progressCont').style.display = "none";
+    }
+</script>
+
+</body>
+</html>
