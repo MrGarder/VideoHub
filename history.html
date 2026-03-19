@@ -75,6 +75,7 @@
 <div id="historyPageList"></div>
 
 <script>
+const API_URL = "https://videohub-c48i.onrender.com";
 const user = localStorage.getItem('currentUser');
 const list = document.getElementById('historyPageList');
 
@@ -86,8 +87,7 @@ async function loadHistory() {
     }
     
     try {
-        // ИСПРАВЛЕНО: относительный путь вместо localhost
-        const res = await fetch(`/history/${user}`);
+        const res = await fetch(`${API_URL}/history/${user}`);
         const data = await res.json();
         
         if(!data || data.length === 0) {
@@ -95,18 +95,21 @@ async function loadHistory() {
             return;
         }
 
-        list.innerHTML = data.map(item => `
-            <div class="history-item" id="hist-item-${item.history_id}">
-                <video class="thumb" src="${item.url}#t=0.5" onclick="location.href='watch.html?v=${item.id}'"></video>
-                
-                <div class="info-block" onclick="location.href='watch.html?v=${item.id}'">
-                    <div class="title">${item.title}</div>
-                    <div class="time">Просмотрено: ${new Date(item.watched_at).toLocaleString('ru-RU')}</div>
-                </div>
+        list.innerHTML = data.map(item => {
+            const videoUrl = item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`;
+            return `
+                <div class="history-item" id="hist-item-${item.history_id}">
+                    <video class="thumb" src="${videoUrl}#t=0.5" muted onclick="location.href='watch.html?v=${item.id}'"></video>
+                    
+                    <div class="info-block" onclick="location.href='watch.html?v=${item.id}'">
+                        <div class="title">${item.title}</div>
+                        <div class="time">Просмотрено: ${new Date(item.watched_at).toLocaleString('ru-RU')}</div>
+                    </div>
 
-                <button class="delete-one" title="Удалить из истории" onclick="deleteHistoryItem(${item.history_id})">✕</button>
-            </div>
-        `).join('');
+                    <button class="delete-one" title="Удалить из истории" onclick="deleteHistoryItem(${item.history_id})">✕</button>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
         list.innerHTML = "<p style='text-align:center; color:#ff4444; padding:20px;'>Ошибка связи с сервером</p>";
     }
@@ -117,16 +120,17 @@ async function deleteHistoryItem(histId) {
     if(!confirm('Удалить это видео из истории?')) return;
 
     try {
-        // ИСПРАВЛЕНО: относительный путь вместо localhost
-        const res = await fetch(`/history/item/${histId}`, {
+        const res = await fetch(`${API_URL}/history/item/${histId}`, {
             method: 'DELETE'
         });
 
         if(res.ok) {
             const el = document.getElementById(`hist-item-${histId}`);
-            el.style.opacity = '0';
-            el.style.transform = 'translateX(20px)';
-            setTimeout(() => el.remove(), 300);
+            if(el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(20px)';
+                setTimeout(() => el.remove(), 300);
+            }
         }
     } catch (e) {
         alert("Не удалось удалить");
@@ -137,9 +141,12 @@ async function deleteHistoryItem(histId) {
 document.getElementById('clearAll').onclick = async () => {
     if(!user) return;
     if(confirm('Очистить всю вашу историю просмотров?')) {
-        // ИСПРАВЛЕНО: относительный путь вместо localhost
-        await fetch(`/history/${user}`, { method: 'DELETE' });
-        loadHistory();
+        try {
+            await fetch(`${API_URL}/history/${user}`, { method: 'DELETE' });
+            loadHistory();
+        } catch (e) {
+            alert("Ошибка при очистке истории");
+        }
     }
 };
 
