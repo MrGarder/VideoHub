@@ -134,28 +134,28 @@
       </tr>
     </thead>
     <tbody id="adminList">
-      </tbody>
+    </tbody>
   </table>
 </div>
 
 <script>
+  const API_URL = "https://videohub-c48i.onrender.com";
   const ADMIN_NICKNAME = "MrGarder"; 
 
   function checkAccess() {
-    // Получаем ник текущего юзера из localStorage (как на твоем основном сайте)
     const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('username');
     
     if (currentUser !== ADMIN_NICKNAME) {
       alert("Доступ только для администратора MrGarder!");
       location.href = 'index.html';
     } else {
-      document.body.style.display = 'block'; // Показываем страницу, если это ты
+      document.body.style.display = 'block';
     }
   }
 
   async function loadVideos() {
     try {
-      const res = await fetch('/videos');
+      const res = await fetch(`${API_URL}/videos`);
       const videos = await res.json();
       
       document.getElementById('totalCount').innerText = videos.length;
@@ -166,21 +166,28 @@
         return;
       }
 
-      list.innerHTML = videos.map(v => `
-        <tr class="video-row">
-          <td>
-            <img src="${v.thumbnail_url || 'placeholder.png'}" class="thumb-preview" onerror="this.src='placeholder.png'">
-          </td>
-          <td class="video-info">
-            <b>${v.title}</b>
-            <span>Автор: @${v.author_name || 'Неизвестен'}</span><br>
-            <span style="font-size: 10px; opacity: 0.4;">ID: ${v._id}</span>
-          </td>
-          <td>
-            <button class="del-btn" onclick="deleteVideo('${v._id}')">Удалить</button>
-          </td>
-        </tr>
-      `).join('');
+      list.innerHTML = videos.map(v => {
+        const id = v._id || v.id;
+        const thumbSrc = v.thumbnail_url 
+          ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`)
+          : 'https://via.placeholder.com/160x90/111/444?text=Video';
+
+        return `
+          <tr class="video-row">
+            <td>
+              <img src="${thumbSrc}" class="thumb-preview" onerror="this.src='https://via.placeholder.com/160x90/111/444?text=Error'">
+            </td>
+            <td class="video-info">
+              <b>${v.title || 'Без названия'}</b>
+              <span>Автор: @${v.author_name || 'Неизвестен'}</span><br>
+              <span style="font-size: 10px; opacity: 0.4;">ID: ${id}</span>
+            </td>
+            <td>
+              <button class="del-btn" onclick="deleteVideo('${id}')">Удалить</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     } catch (err) {
       console.error("Ошибка при загрузке видео:", err);
     }
@@ -189,19 +196,17 @@
   async function deleteVideo(id) {
     if (!confirm("Ты уверен, что хочешь безвозвратно удалить это видео и файл с сервера?")) return;
 
-    // Берем твой ник для проверки на сервере
     const myName = localStorage.getItem('currentUser') || localStorage.getItem('username');
 
     try {
-      // Отправляем ник в параметрах запроса (?username=MrGarder)
-      const res = await fetch(`/admin/delete-video/${id}?username=${myName}`, {
+      const res = await fetch(`${API_URL}/admin/delete-video/${id}?username=${myName}`, {
         method: 'DELETE'
       });
       
       const data = await res.json();
 
       if (data.success) {
-        loadVideos(); // Сразу обновляем таблицу
+        loadVideos(); 
       } else {
         alert("Ошибка доступа: " + (data.error || "Не удалось удалить"));
       }
@@ -210,7 +215,6 @@
     }
   }
 
-  // Сначала проверяем, кто зашел, потом грузим данные
   checkAccess();
   loadVideos();
 </script>
