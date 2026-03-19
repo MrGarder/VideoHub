@@ -6,9 +6,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
+const { OAuth2Client } = require('google-auth-library'); // Добавлено для Google
 require('dotenv').config();
 
 const app = express();
+const googleClient = new OAuth2Client("897716797553-spvtnmo96h8mnn9tioa4t4ir1iqv60qh.apps.googleusercontent.com");
 
 // --- НАСТРОЙКА CLOUDINARY ---
 cloudinary.config({ 
@@ -118,6 +120,43 @@ app.post('/login', async (req, res) => {
             else res.status(401).send('Неверный пароль');
         } else res.status(404).send('Пользователь не найден');
     } catch (err) { res.status(500).send('Ошибка сервера'); }
+});
+
+// АВТОРИЗАЦИЯ ЧЕРЕЗ GOOGLE
+app.post('/google-auth', async (req, res) => {
+    const { token } = req.body;
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: "897716797553-spvtnmo96h8mnn9tioa4t4ir1iqv60qh.apps.googleusercontent.com",
+        });
+        const payload = ticket.getPayload();
+        const email = payload['email'];
+        const name = payload['given_name'];
+        const picture = payload['picture'];
+        const googleId = payload['sub'];
+
+        let user = await db.collection('users').findOne({ email: email });
+
+        if (!user) {
+            const newUser = {
+                username: name,
+                email: email,
+                avatar_url: picture,
+                googleId: googleId,
+                created_at: new Date()
+            };
+            await db.collection('users').insertOne(newUser);
+            user = newUser;
+        }
+
+        res.status(200).json({ 
+            username: user.username, 
+            avatarUrl: user.avatar_url 
+        });
+    } catch (error) {
+        res.status(401).send("Ошибка Google Auth");
+    }
 });
 
 // --- МАРШРУТЫ: ОБНОВЛЕНИЕ ПРОФИЛЯ ---
@@ -394,6 +433,26 @@ app.post('/videos/:id/comments', async (req, res) => {
             created_at: new Date()
         });
         res.status(201).send("Комментарий добавлен");
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// --- АДМИН-ПАНЕЛЬ: НОВЫЕ РОУТЫ ---
+
+// Получить всех пользователей для админки
+app.get('/admin/users', async (req, res) => {
+    try {
+        const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+        res.json(users);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// Удалить пользователя (Бан)
+app.delete('/admin/delete-user/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
+        await db.collection('users').deleteOne({ _id: new ObjectId(id) });
+        res.json({ success: true });
     } catch (err) { res.status(500).send(err.message); }
 });
 
