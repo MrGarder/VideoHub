@@ -111,23 +111,19 @@
       const res = await fetch(`${API_URL}/videos`);
       const videos = await res.json();
       
+      // Сортировка по популярности
       videos.sort((a, b) => ((b.views || 0) + (b.likes || 0) * 2) - ((a.views || 0) + (a.likes || 0) * 2));
 
       grid.innerHTML = videos.slice(0, 20).map((v, index) => {
-        const videoSrc = v.url.startsWith('http') ? v.url : `${API_URL}${v.url}`;
-        const thumbSrc = v.thumbnail_url 
-          ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`)
-          : null;
+        // Берем прямую ссылку из Cloudinary (v.url)
+        const videoSrc = v.url || '';
+        const thumbSrc = v.thumbnail_url || 'https://via.placeholder.com/640x360/111/444?text=Video';
 
-        const thumbImg = thumbSrc 
-          ? `<img src="${thumbSrc}">` 
-          : `<img src="https://via.placeholder.com/640x360/111/444?text=Video" style="opacity:0.5">`;
-        
         return `
-          <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${v.id}'">
+          <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${v._id}'">
             <div class="trending-badge">#${index + 1}</div>
             <div class="thumb-wrapper">
-              ${thumbImg}
+              <img src="${thumbSrc}">
               <video src="${videoSrc}" muted loop preload="metadata" playsinline></video>
             </div>
             <div class="video-info">
