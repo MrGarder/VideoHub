@@ -249,23 +249,40 @@ app.post('/videos/:id/comments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- УДАЛЕНИЕ ВИДЕО ---
+// --- УДАЛЕНИЕ ВИДЕО (АДМИН-ПАНЕЛЬ) ---
 
-app.delete('/delete-video/:id', async (req, res) => {
+app.delete('/admin/delete-video/:id', async (req, res) => {
     try {
-        if (!ObjectId.isValid(req.params.id)) return res.status(400).send("Некорректный ID");
-        const video = await db.collection('videos').findOne({ _id: new ObjectId(req.params.id) });
-        if (!video) return res.status(404).send("Видео не найдено");
+        const { id } = req.params;
+        const { username } = req.query;
+
+        if (username !== "MrGarder") {
+            return res.status(403).json({ success: false, error: "Нет прав!" });
+        }
+
+        if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
+        
+        const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
+        if (!video) return res.status(404).json({ success: false, error: "Не найдено" });
         
         const fileName = video.video_path;
-        await db.collection('videos').deleteOne({ _id: new ObjectId(req.params.id) });
+        const thumbUrl = video.thumbnail_url;
+
+        await db.collection('videos').deleteOne({ _id: new ObjectId(id) });
         
+        // Удаляем файлы
         if (fileName) {
             const filePath = path.join(__dirname, 'uploads', fileName);
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
-        res.status(200).send("Удалено");
-    } catch (err) { res.status(500).send(err.message); }
+        if (thumbUrl && thumbUrl.includes('/uploads/')) {
+            const thumbName = thumbUrl.split('/').pop();
+            const thumbPath = path.join(__dirname, 'uploads', thumbName);
+            if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+        }
+
+        res.status(200).json({ success: true });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
