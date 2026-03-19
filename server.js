@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb'); // Заменили pg на mongodb
+const { MongoClient, ObjectId } = require('mongodb'); 
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const multer = require('multer');
@@ -30,8 +30,8 @@ app.get('/', (req, res) => {
 // --- ПОДКЛЮЧЕНИЕ К MONGODB ---
 const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://admin:wOWgCpoBtti6gneb@cluster0.rnxra9s.mongodb.net/VideoHub_db?retryWrites=true&w=majority';
 const client = new MongoClient(mongoUrl, {
-    connectTimeoutMS: 10000, // Ждать 10 секунд
-    family: 4 // Принудительно использовать IPv4 (часто решает проблему ENOTFOUND)
+    connectTimeoutMS: 10000, 
+    family: 4 
 });
 const dbName = 'VideoHub_db';
 let db;
@@ -122,6 +122,21 @@ app.get('/videos', async (req, res) => {
             v.likes = await db.collection('video_likes').countDocuments({ video_id: v._id.toString() });
         }
         res.json(videos);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// РЕДАКТИРОВАНИЕ ВИДЕО
+app.put('/videos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title } = req.body;
+        if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
+        
+        await db.collection('videos').updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { title: title } }
+        );
+        res.sendStatus(200);
     } catch (err) { res.status(500).send(err.message); }
 });
 
@@ -216,7 +231,6 @@ app.post('/subscribe', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// НОВЫЙ МАРШРУТ ДЛЯ ПОДСЧЕТА ПОДПИСЧИКОВ
 app.get('/subscribe/count/:authorName', async (req, res) => {
     try {
         const count = await db.collection('subscriptions').countDocuments({ author_name: req.params.authorName });
@@ -269,21 +283,22 @@ app.post('/videos/:id/comments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- УДАЛЕНИЕ ВИДЕО (АДМИН-ПАНЕЛЬ) ---
+// --- УДАЛЕНИЕ ВИДЕО ---
 
 app.delete('/admin/delete-video/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { username } = req.query;
 
-        if (username !== "MrGarder") {
-            return res.status(403).json({ success: false, error: "Нет прав!" });
-        }
-
         if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
         
         const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
         if (!video) return res.status(404).json({ success: false, error: "Не найдено" });
+
+        // Разрешаем удаление админу MrGarder ИЛИ автору видео
+        if (username !== "MrGarder" && username !== video.author_name) {
+            return res.status(403).json({ success: false, error: "Нет прав!" });
+        }
         
         const fileName = video.video_path;
         const thumbUrl = video.thumbnail_url;
