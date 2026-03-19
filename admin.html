@@ -19,13 +19,13 @@
       background: linear-gradient(135deg, #0f0f1a, #1b1630);
       color: var(--text);
       min-height: 100vh;
-      display: none; /* Скрываем тело до проверки доступа */
+      display: none; 
     }
 
     .admin-container {
-      max-width: 1100px;
+      max-width: 1400px; /* Увеличил ширину для двух колонок */
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 30px 20px;
     }
 
     .header {
@@ -33,67 +33,83 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 20px;
+      background: var(--glass);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
     }
 
     .stats-card {
+      background: rgba(107, 92, 255, 0.1);
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+    }
+
+    /* СЕТКА ДЛЯ ДВУХ БЛОКОВ */
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr; /* Видео чуть шире, юзеры уже */
+      gap: 30px;
+      align-items: start;
+    }
+
+    @media (max-width: 1000px) {
+      .admin-grid { grid-template-columns: 1fr; } /* На мобилках в одну колонку */
+    }
+
+    .content-section {
       background: var(--glass);
-      padding: 15px 25px;
-      border-radius: 15px;
+      padding: 25px;
+      border-radius: 24px;
       border: 1px solid rgba(255,255,255,0.05);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(15px);
+      height: fit-content;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: var(--accent);
     }
 
     .video-table {
       width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 10px;
-      margin-bottom: 50px;
-    }
-
-    .video-table th {
-      text-align: left;
-      padding: 10px 15px;
-      color: rgba(255,255,255,0.5);
-      font-weight: 400;
-      font-size: 14px;
+      border-collapse: collapse;
     }
 
     .video-row {
-      background: var(--glass);
-      transition: 0.3s;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: 0.2s;
     }
 
-    .video-row:hover {
-      background: rgba(255,255,255,0.08);
-    }
+    .video-row:hover { background: rgba(255,255,255,0.03); }
 
-    .video-row td {
-      padding: 15px;
-    }
-
-    .video-row td:first-child { border-radius: 12px 0 0 12px; }
-    .video-row td:last-child { border-radius: 0 12px 12px 0; }
+    .video-row td { padding: 12px 8px; vertical-align: middle; }
 
     .thumb-preview {
-      width: 100px;
+      width: 80px;
       aspect-ratio: 16/9;
-      border-radius: 8px;
+      border-radius: 6px;
       object-fit: cover;
       background: #000;
     }
 
-    .video-info b { display: block; margin-bottom: 4px; }
-    .video-info span { color: rgba(255,255,255,0.5); font-size: 13px; word-break: break-all; }
+    .video-info b { display: block; font-size: 14px; margin-bottom: 2px; }
+    .video-info span { color: rgba(255,255,255,0.5); font-size: 12px; }
 
     .del-btn {
       background: rgba(255, 78, 78, 0.1);
       color: var(--danger);
       border: 1px solid rgba(255, 78, 78, 0.2);
-      padding: 8px 16px;
-      border-radius: 10px;
+      padding: 6px 12px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 12px;
       font-weight: 600;
       transition: 0.2s;
     }
@@ -101,32 +117,41 @@
     .del-btn:hover {
       background: var(--danger);
       color: white;
-      box-shadow: 0 0 15px rgba(255, 78, 78, 0.3);
     }
 
     .back-link {
       color: var(--accent);
       text-decoration: none;
       font-size: 14px;
-      display: inline-block;
-      margin-bottom: 5px;
+      opacity: 0.8;
     }
 
-    /* СТИЛИ ДЛЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ */
     .user-badge {
-      font-size: 10px;
-      padding: 2px 6px;
+      font-size: 9px;
+      padding: 2px 5px;
       border-radius: 4px;
-      background: var(--accent);
+      background: #4285F4;
       margin-left: 5px;
     }
+
     .user-avatar-mini {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      vertical-align: middle;
-      margin-right: 10px;
+      margin-right: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
     }
+
+    /* Скроллбар для длинных списков */
+    .scroll-area {
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    .scroll-area::-webkit-scrollbar { width: 4px; }
+    .scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .scroll-area::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
   </style>
 </head>
 <body>
@@ -135,39 +160,38 @@
   <div class="header">
     <div>
       <a href="index.html" class="back-link">← Вернуться на сайт</a>
-      <h1>Панель Администратора</h1>
+      <h1 style="margin: 5px 0 0 0; font-size: 24px;">Control Center</h1>
     </div>
     <div class="stats-card">
-      <span id="totalCount" style="font-weight: bold; color: var(--accent);">0</span> видео | 
-      <span id="userCount" style="font-weight: bold; color: var(--accent);">0</span> аккаунтов
+      <span id="totalCount">0</span> vids | <span id="userCount">0</span> users
     </div>
   </div>
 
-  <h2>Видеоролики</h2>
-  <table class="video-table">
-    <thead>
-      <tr>
-        <th>Превью</th>
-        <th>Данные ролика</th>
-        <th>Управление</th>
-      </tr>
-    </thead>
-    <tbody id="adminList">
-    </tbody>
-  </table>
+  <div class="admin-grid">
+    <div class="content-section">
+      <div class="section-title">
+        <span>🎬 Видеоролики</span>
+      </div>
+      <div class="scroll-area">
+        <table class="video-table">
+          <tbody id="adminList">
+            </tbody>
+        </table>
+      </div>
+    </div>
 
-  <h2>Зарегистрированные пользователи</h2>
-  <table class="video-table">
-    <thead>
-      <tr>
-        <th>Пользователь</th>
-        <th>Email / ID</th>
-        <th>Управление</th>
-      </tr>
-    </thead>
-    <tbody id="userList">
-    </tbody>
-  </table>
+    <div class="content-section">
+      <div class="section-title">
+        <span>👥 Пользователи</span>
+      </div>
+      <div class="scroll-area">
+        <table class="video-table">
+          <tbody id="userList">
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -176,9 +200,8 @@
 
   function checkAccess() {
     const currentUser = localStorage.getItem('currentUser') || localStorage.getItem('username');
-    
     if (currentUser !== ADMIN_NICKNAME) {
-      alert("Доступ только для администратора MrGarder!");
+      alert("Доступ запрещен!");
       location.href = 'index.html';
     } else {
       document.body.style.display = 'block';
@@ -189,89 +212,66 @@
     try {
       const res = await fetch(`${API_URL}/videos`);
       const videos = await res.json();
-      
       document.getElementById('totalCount').innerText = videos.length;
       const list = document.getElementById('adminList');
       
-      if (videos.length === 0) {
-        list.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 50px;">База данных пуста...</td></tr>';
-        return;
-      }
-
       list.innerHTML = videos.map(v => {
         const id = v._id || v.id;
-        const thumbSrc = v.thumbnail_url 
-          ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`)
-          : 'https://via.placeholder.com/160x90/111/444?text=Video';
-
+        const thumbSrc = v.thumbnail_url?.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`;
+        
         return `
           <tr class="video-row">
-            <td>
-              <img src="${thumbSrc}" class="thumb-preview" onerror="this.src='https://via.placeholder.com/160x90/111/444?text=Error'">
-            </td>
+            <td width="90"><img src="${thumbSrc}" class="thumb-preview" onerror="this.src='https://via.placeholder.com/160x90/111/444?text=No+Thumb'"></td>
             <td class="video-info">
-              <b>${v.title || 'Без названия'}</b>
-              <span>Автор: @${v.author_name || 'Неизвестен'}</span><br>
-              <span style="font-size: 10px; opacity: 0.4;">ID: ${id}</span>
+              <b>${v.title}</b>
+              <span>@${v.author_name}</span>
             </td>
-            <td>
+            <td align="right">
               <button class="del-btn" onclick="deleteVideo('${id}')">Удалить</button>
             </td>
           </tr>
         `;
       }).join('');
-    } catch (err) {
-      console.error("Ошибка при загрузке видео:", err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function loadUsers() {
     try {
       const res = await fetch(`${API_URL}/admin/users`);
       const users = await res.json();
-      
       document.getElementById('userCount').innerText = users.length;
       const list = document.getElementById('userList');
       
       list.innerHTML = users.map(u => `
         <tr class="video-row">
           <td class="video-info">
-            <img src="${u.avatar || 'https://via.placeholder.com/32'}" class="user-avatar-mini">
-            <b style="display:inline;">${u.username}</b>
-            ${u.googleId ? '<span class="user-badge">Google</span>' : ''}
+            <div style="display:flex; align-items:center;">
+              <img src="${u.avatar_url || 'https://via.placeholder.com/32'}" class="user-avatar-mini">
+              <div>
+                <b>${u.username} ${u.googleId ? '<span class="user-badge">G</span>' : ''}</b>
+                <span>${u.email || 'no-mail'}</span>
+              </div>
+            </div>
           </td>
-          <td class="video-info">
-            <span>${u.email || 'Нет email'}</span><br>
-            <span style="font-size: 10px; opacity: 0.4;">ID: ${u._id}</span>
-          </td>
-          <td>
-            ${u.username !== ADMIN_NICKNAME ? `<button class="del-btn" onclick="deleteUser('${u._id}')">Бан</button>` : '—'}
+          <td align="right">
+            ${u.username !== ADMIN_NICKNAME ? `<button class="del-btn" onclick="deleteUser('${u._id}')">Бан</button>` : '⭐'}
           </td>
         </tr>
       `).join('');
-    } catch (err) {
-      console.error("Ошибка при загрузке пользователей:", err);
-    }
+    } catch (err) { console.error(err); }
   }
 
   async function deleteVideo(id) {
-    if (!confirm("Ты уверен, что хочешь безвозвратно удалить это видео и файл с сервера?")) return;
+    if (!confirm("Удалить видео?")) return;
     const myName = localStorage.getItem('currentUser') || localStorage.getItem('username');
-    try {
-      const res = await fetch(`${API_URL}/admin/delete-video/${id}?username=${myName}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) loadVideos(); 
-      else alert("Ошибка: " + (data.error || "Не удалось удалить"));
-    } catch (err) { alert("Ошибка соединения"); }
+    const res = await fetch(`${API_URL}/admin/delete-video/${id}?username=${myName}`, { method: 'DELETE' });
+    if (res.ok) loadVideos();
   }
 
   async function deleteUser(id) {
-    if (!confirm("Удалить этот аккаунт из системы?")) return;
-    try {
-      const res = await fetch(`${API_URL}/admin/delete-user/${id}`, { method: 'DELETE' });
-      if (res.ok) loadUsers();
-      else alert("Ошибка при удалении пользователя");
-    } catch (err) { alert("Ошибка соединения"); }
+    if (!confirm("Забанить пользователя?")) return;
+    const res = await fetch(`${API_URL}/admin/delete-user/${id}`, { method: 'DELETE' });
+    if (res.ok) loadUsers();
   }
 
   checkAccess();
