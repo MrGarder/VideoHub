@@ -49,6 +49,7 @@ async function connectDB() {
         await client.connect();
         db = client.db(dbName);
         console.log("✅ MongoDB подключена успешно");
+        // Создаем индекс для уникальности никнеймов в базе
         await db.collection('users').createIndex({ username: 1 }, { unique: true });
     } catch (err) {
         console.error("❌ Ошибка подключения к MongoDB:", err.message);
@@ -68,16 +69,35 @@ const uploadFields = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thu
 
 app.post('/register', async (req, res) => {
     const { username, password, email } = req.body;
+    
+    // Очистка ника от пробелов
+    const cleanUsername = username ? username.trim() : "";
+
+    if (!cleanUsername || cleanUsername.length < 3) {
+        return res.status(400).send('Никнейм слишком короткий');
+    }
+
     try {
+        // Проверка на уникальность (регистронезависимая)
+        const existingUser = await db.collection('users').findOne({ 
+            username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') } 
+        });
+
+        if (existingUser) {
+            return res.status(400).send('Этот никнейм уже занят');
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.collection('users').insertOne({
-            username,
+            username: cleanUsername,
             password: hashedPassword,
             email,
             created_at: new Date()
         });
         res.status(201).send('Пользователь создан');
-    } catch (err) { res.status(500).send(err.message); }
+    } catch (err) { 
+        res.status(500).send(err.message); 
+    }
 });
 
 app.post('/login', async (req, res) => {
@@ -105,15 +125,19 @@ app.post('/upload', uploadFields, async (req, res) => {
 
         const videoLocalPath = files.video[0].path;
 
+        // Загрузка с авто-сжатием (качество 'auto' и формат 'auto')
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video",
-            folder: "videohub/videos"
+            folder: "videohub/videos",
+            quality: "auto",
+            fetch_format: "auto"
         });
 
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
             const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, {
-                folder: "videohub/thumbs"
+                folder: "videohub/thumbs",
+                quality: "auto"
             });
             finalThumbUrl = thumbResult.secure_url;
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
