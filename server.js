@@ -5,9 +5,17 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2; // Подключили Cloudinary
 require('dotenv').config();
 
 const app = express();
+
+// --- НАСТРОЙКА CLOUDINARY ---
+cloudinary.config({ 
+  cloud_name: 'dk7o3keez', 
+  api_key: '669527537632519', 
+  api_secret: 'TVzkbUKrfSFNT8TV6oKThhonSCg' 
+});
 
 // Настройки парсинга данных
 app.use(express.json({ limit: '50mb' }));
@@ -41,8 +49,6 @@ async function connectDB() {
         await client.connect();
         db = client.db(dbName);
         console.log("✅ MongoDB подключена успешно");
-        
-        // Индексы
         await db.collection('users').createIndex({ username: 1 }, { unique: true });
     } catch (err) {
         console.error("❌ Ошибка подключения к MongoDB:", err.message);
@@ -50,7 +56,7 @@ async function connectDB() {
 }
 connectDB();
 
-// --- НАСТРОЙКА MULTER ---
+// --- НАСТРОЙКА MULTER (Временное хранилище перед отправкой в облако) ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -89,7 +95,7 @@ app.post('/login', async (req, res) => {
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
-// --- МАРШРУТЫ: ВИДЕО ---
+// --- МАРШРУТЫ: ВИДЕО (ЗАГРУЗКА В CLOUDINARY) ---
 
 app.post('/upload', uploadFields, async (req, res) => {
     try {
@@ -97,22 +103,48 @@ app.post('/upload', uploadFields, async (req, res) => {
         const files = req.files;
         if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
 
-        const videoFileName = files.video[0].filename;
-        const videoUrl = `/uploads/${videoFileName}`;
-        const thumbUrl = (files.thumbnail && files.thumbnail[0]) ? `/uploads/${files.thumbnail[0].filename}` : null;
+        const videoLocalPath = files.video[0].path;
 
+        // 1. Грузим видео в Cloudinary
+        const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
+            resource_type: "video",
+            folder: "videohub/videos"
+        });
+
+        // 2. Если есть превью, грузим его, если нет - делаем из видео
+        let finalThumbUrl = "";
+        if (files.thumbnail && files.thumbnail[0]) {
+            const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, {
+                folder: "videohub/thumbs"
+            });
+            finalThumbUrl = thumbResult.secure_url;
+            // Удаляем временное превью
+            if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
+        } else {
+            // Авто-превью из видео (первый кадр)
+            finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
+        }
+
+        // 3. Сохраняем в БД
         await db.collection('videos').insertOne({
             title,
             description: description || '',
-            url: videoUrl,
-            thumbnail_url: thumbUrl,
+            url: videoResult.secure_url,
+            thumbnail_url: finalThumbUrl,
             author_name: username,
-            video_path: videoFileName,
+            cloudinary_id: videoResult.public_id, // Сохраняем ID для удаления
             views: 0,
             created_at: new Date()
         });
+
+        // Удаляем временное видео с диска сервера
+        if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
+
         res.status(200).send('Опубликовано!');
-    } catch (err) { res.status(500).send(err.message); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).send("Ошибка загрузки в облако: " + err.message); 
+    }
 });
 
 app.get('/videos', async (req, res) => {
@@ -125,17 +157,12 @@ app.get('/videos', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// РЕДАКТИРОВАНИЕ ВИДЕО
 app.put('/videos/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { title } = req.body;
         if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
-        
-        await db.collection('videos').updateOne(
-            { _id: new ObjectId(id) },
-            { $set: { title: title } }
-        );
+        await db.collection('videos').updateOne({ _id: new ObjectId(id) }, { $set: { title: title } });
         res.sendStatus(200);
     } catch (err) { res.status(500).send(err.message); }
 });
@@ -148,19 +175,12 @@ app.post('/videos/:id/view', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ДАННЫЕ ПРОФИЛЯ (ВИДЕО АВТОРА) ---
-
 app.get('/user-videos/:username', async (req, res) => {
     try {
-        const videos = await db.collection('videos')
-            .find({ author_name: req.params.username })
-            .sort({ created_at: -1 })
-            .toArray();
+        const videos = await db.collection('videos').find({ author_name: req.params.username }).sort({ created_at: -1 }).toArray();
         res.json(videos);
     } catch (err) { res.status(500).send(err.message); }
 });
-
-// --- ЛАЙКИ И ДИЗЛАЙКИ ---
 
 app.get('/videos/:id/likes-status', async (req, res) => {
     const videoId = req.params.id;
@@ -207,8 +227,6 @@ app.post('/videos/:id/dislike', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ПОДПИСКИ ---
-
 app.get('/subscribe/status', async (req, res) => {
     const { follower, authorName } = req.query;
     try {
@@ -238,8 +256,6 @@ app.get('/subscribe/count/:authorName', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ИСТОРИЯ ---
-
 app.post('/history/add', async (req, res) => {
     const { username, videoId } = req.body;
     try {
@@ -255,13 +271,10 @@ app.get('/history/:username', async (req, res) => {
         const videoIds = history.map(h => {
             try { return new ObjectId(h.video_id); } catch(e) { return null; }
         }).filter(id => id !== null);
-        
         const videos = await db.collection('videos').find({ _id: { $in: videoIds } }).toArray();
         res.json(videos);
     } catch (err) { res.status(500).send(err.message); }
 });
-
-// --- КОММЕНТАРИИ ---
 
 app.get('/videos/:id/comments', async (req, res) => {
     try {
@@ -283,38 +296,25 @@ app.post('/videos/:id/comments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- УДАЛЕНИЕ ВИДЕО ---
-
 app.delete('/admin/delete-video/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { username } = req.query;
 
         if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
-        
         const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
         if (!video) return res.status(404).json({ success: false, error: "Не найдено" });
 
-        // Разрешаем удаление админу MrGarder ИЛИ автору видео
         if (username !== "MrGarder" && username !== video.author_name) {
             return res.status(403).json({ success: false, error: "Нет прав!" });
         }
         
-        const fileName = video.video_path;
-        const thumbUrl = video.thumbnail_url;
+        // Удаляем из Cloudinary, если есть ID
+        if (video.cloudinary_id) {
+            await cloudinary.uploader.destroy(video.cloudinary_id, { resource_type: 'video' });
+        }
 
         await db.collection('videos').deleteOne({ _id: new ObjectId(id) });
-        
-        if (fileName) {
-            const filePath = path.join(__dirname, 'uploads', fileName);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        }
-        if (thumbUrl && thumbUrl.includes('/uploads/')) {
-            const thumbName = thumbUrl.split('/').pop();
-            const thumbPath = path.join(__dirname, 'uploads', thumbName);
-            if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
-        }
-
         res.status(200).json({ success: true });
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
