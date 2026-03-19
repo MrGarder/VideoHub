@@ -122,19 +122,33 @@
 
   async function load() {
     try {
-        // Используем новый маршрут /user-videos/
-        const [vidRes, subRes] = await Promise.all([
-            fetch(`${API_URL}/user-videos/${targetUser}`),
-            fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`).catch(() => ({json: () => ({subscribed: false})}))
-        ]);
-        
+        // 1. Загружаем основное — видео автора
+        const vidRes = await fetch(`${API_URL}/user-videos/${targetUser}`);
+        if (!vidRes.ok) throw new Error('Ошибка сети');
         const userVideos = await vidRes.json();
-        const subsCountRes = await fetch(`${API_URL}/subscribe/count/${targetUser}`).catch(() => ({json: () => ({count: 0})}));
-        const subsData = await subsCountRes.json();
+
+        // 2. Загружаем статус подписки (отдельно, чтобы не тормозить страницу)
+        let isSubscribed = false;
+        try {
+            if (currentUser && currentUser !== targetUser) {
+                const subRes = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
+                const status = await subRes.json();
+                isSubscribed = status.subscribed;
+            }
+        } catch(e) { console.warn("Статус подписки не загружен"); }
+
+        // 3. Загружаем количество подписчиков
+        let subsCount = 0;
+        try {
+            const scRes = await fetch(`${API_URL}/subscribe/count/${targetUser}`);
+            const scData = await scRes.json();
+            subsCount = scData.count || 0;
+        } catch(e) { console.warn("Счетчик подписчиков не загружен"); }
         
+        // 4. Отрисовка профиля
         const profileData = JSON.parse(localStorage.getItem(`profile_${targetUser}`) || '{}');
         document.getElementById('displayUsername').innerText = profileData.name || `@${targetUser}`;
-        document.getElementById('videoStats').innerText = `${subsData.count || 0} подписчиков • ${userVideos.length} видео`;
+        document.getElementById('videoStats').innerText = `${subsCount} подписчиков • ${userVideos.length} видео`;
         
         const avatarEl = document.getElementById('userAvatar');
         if(profileData.avatar) {
@@ -147,21 +161,22 @@
         }
         if(profileData.banner) document.getElementById('bannerImg').src = profileData.banner;
 
+        // Кнопки управления
         const controls = document.getElementById('profileControls');
         if (targetUser === currentUser) {
             controls.innerHTML = `<button class="btn btn-edit" onclick="openModal('editModal')">⚙️ Настроить</button>`;
         } else if (currentUser) {
-            const status = await subRes.json();
-            controls.innerHTML = `<button class="btn btn-sub ${status.subscribed ? 'active' : ''}" id="mainSubBtn">${status.subscribed ? 'Вы подписаны' : 'Подписаться'}</button>`;
+            controls.innerHTML = `<button class="btn btn-sub ${isSubscribed ? 'active' : ''}" id="mainSubBtn">${isSubscribed ? 'Вы подписаны' : 'Подписаться'}</button>`;
             document.getElementById('mainSubBtn').onclick = toggleSubscribe;
         }
 
+        const grid = document.getElementById('myVideos');
         if (userVideos.length === 0) {
-            document.getElementById('myVideos').innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #555;">Нет загруженных видео</p>';
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #555;">Нет загруженных видео</p>';
             return;
         }
 
-        document.getElementById('myVideos').innerHTML = userVideos.map(v => {
+        grid.innerHTML = userVideos.map(v => {
             const hasThumb = v.thumbnail_url && v.thumbnail_url !== 'null';
             const videoSrc = v.url.startsWith('http') ? v.url : `${API_URL}${v.url}`;
             const thumbSrc = hasThumb ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`) : '';
@@ -177,9 +192,7 @@
                 <div class="thumb-nav" onclick="location.href='watch.html?v=${v._id}'" 
                      onmouseenter="this.querySelector('video').play(); if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
                      onmouseleave="const vid=this.querySelector('video'); vid.pause(); vid.currentTime=0.1; if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
-                    
                     <video src="${videoSrc}#t=0.1" muted loop preload="metadata" playsinline></video>
-                    
                     ${hasThumb ? `<img src="${thumbSrc}" class="main-thumb">` : ''}
                 </div>
                 <div class="card-info">
