@@ -216,6 +216,14 @@ app.post('/subscribe', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// НОВЫЙ МАРШРУТ ДЛЯ ПОДСЧЕТА ПОДПИСЧИКОВ
+app.get('/subscribe/count/:authorName', async (req, res) => {
+    try {
+        const count = await db.collection('subscriptions').countDocuments({ author_name: req.params.authorName });
+        res.json({ count });
+    } catch (err) { res.status(500).send(err.message); }
+});
+
 // --- ИСТОРИЯ ---
 
 app.post('/history/add', async (req, res) => {
