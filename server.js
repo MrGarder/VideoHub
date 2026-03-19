@@ -115,6 +115,49 @@ app.post('/login', async (req, res) => {
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
+// --- НОВЫЙ МАРШРУТ: ОБНОВЛЕНИЕ ПРОФИЛЯ ДЛЯ ВСЕХ ---
+app.post('/update-profile', async (req, res) => {
+    const { oldUsername, newUsername } = req.body;
+    const cleanNewName = newUsername ? newUsername.trim() : "";
+
+    if (!cleanNewName || cleanNewName.length < 3) {
+        return res.status(400).send("Никнейм слишком короткий");
+    }
+
+    try {
+        // Проверяем, не занят ли ник кем-то другим
+        const userExists = await db.collection('users').findOne({ 
+            username: { $regex: new RegExp(`^${cleanNewName}$`, 'i') } 
+        });
+
+        if (userExists) {
+            return res.status(400).send("Этот никнейм уже занят");
+        }
+
+        // 1. Обновляем в коллекции пользователей
+        await db.collection('users').updateOne(
+            { username: oldUsername },
+            { $set: { username: cleanNewName } }
+        );
+
+        // 2. Обновляем имя автора во всех его видео
+        await db.collection('videos').updateMany(
+            { author_name: oldUsername },
+            { $set: { author_name: cleanNewName } }
+        );
+
+        // 3. Обновляем имя в комментариях
+        await db.collection('video_comments').updateMany(
+            { user_name: oldUsername },
+            { $set: { user_name: cleanNewName } }
+        );
+
+        res.json({ success: true, newUsername: cleanNewName });
+    } catch (err) {
+        res.status(500).send("Ошибка сервера: " + err.message);
+    }
+});
+
 // --- МАРШРУТЫ: ВИДЕО ---
 
 app.post('/upload', uploadFields, async (req, res) => {
