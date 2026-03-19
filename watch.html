@@ -39,6 +39,7 @@
         flex-shrink:0; display: flex; align-items: center; justify-content: center; 
         font-weight: bold; font-size: 20px; 
         background-size: cover; background-position: center;
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
     .channel-info{min-width:0}
@@ -191,35 +192,39 @@ async function initWatchPage() {
         document.getElementById('descText').innerText = video.description || "Нет описания";
         document.getElementById('videoStats').innerText = `${video.views || 0} просмотров • ${formatDate(video.created_at)}`;
 
-        // ПОЛУЧАЕМ ДАННЫЕ АВТОРА С СЕРВЕРА
+        // Пытаемся получить профиль автора для отображения его аватарки
         try {
             const profileRes = await fetch(`${API_URL}/user-profile/${authorName}`);
-            const profile = await profileRes.json();
-            
-            const avatarDiv = document.getElementById('authorAvatar');
-            document.getElementById('authorName').innerText = "@" + authorName;
-
-            if (profile.avatarUrl) {
-                avatarDiv.innerText = '';
-                avatarDiv.style.backgroundImage = `url(${profile.avatarUrl})`;
+            if (profileRes.ok) {
+                const profile = await profileRes.json();
+                const avatarDiv = document.getElementById('authorAvatar');
+                
+                // Проверяем наличие avatarUrl в ответе
+                if (profile && profile.avatarUrl) {
+                    avatarDiv.innerText = '';
+                    avatarDiv.style.backgroundImage = `url("${profile.avatarUrl}")`;
+                } else {
+                    avatarDiv.innerText = authorName[0].toUpperCase();
+                    avatarDiv.style.backgroundImage = 'none';
+                }
             } else {
-                avatarDiv.innerText = authorName[0].toUpperCase();
-                avatarDiv.style.backgroundImage = 'none';
+                throw new Error("Профиль не найден");
             }
         } catch (e) {
-            console.warn("Не удалось загрузить аватар автора");
-            document.getElementById('authorName').innerText = "@" + authorName;
+            console.log("Используем аватар по умолчанию");
             document.getElementById('authorAvatar').innerText = authorName[0].toUpperCase();
         }
 
+        document.getElementById('authorName').innerText = "@" + authorName;
         document.getElementById('authorLink').onclick = () => goToChannel(authorName);
 
-        // API запросы
+        // Статистика и лайки
         const subRes = await fetch(`${API_URL}/subscribe/count/${authorName}`);
         const subData = await subRes.json();
         document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
 
         fetch(`${API_URL}/videos/${video._id}/view`, { method: 'POST' });
+        
         if (currentUser) {
             fetch(`${API_URL}/history/add`, {
                 method: 'POST',
@@ -233,28 +238,32 @@ async function initWatchPage() {
         renderRecommended(allVideos, video._id);
         loadComments();
         
-    } catch (err) { console.error("Ошибка:", err); }
+    } catch (err) { console.error("Ошибка инициализации:", err); }
 }
 
 async function loadLikesStatus() {
-    const res = await fetch(`${API_URL}/videos/${videoId}/likes-status?username=${currentUser || ''}`);
-    const data = await res.json();
-    document.getElementById('likeCount').innerText = data.count;
-    const lBtn = document.getElementById('likeBtn');
-    const dBtn = document.getElementById('dislikeBtn');
-    if(data.isLiked) lBtn.classList.add('active'); else lBtn.classList.remove('active');
-    if(data.isDisliked) dBtn.classList.add('active'); else dBtn.classList.remove('active');
+    try {
+        const res = await fetch(`${API_URL}/videos/${videoId}/likes-status?username=${currentUser || ''}`);
+        const data = await res.json();
+        document.getElementById('likeCount').innerText = data.count;
+        const lBtn = document.getElementById('likeBtn');
+        const dBtn = document.getElementById('dislikeBtn');
+        if(data.isLiked) lBtn.classList.add('active'); else lBtn.classList.remove('active');
+        if(data.isDisliked) dBtn.classList.add('active'); else dBtn.classList.remove('active');
+    } catch(e) {}
 }
 
 async function loadSubStatus(authorName) {
     if(!currentUser || currentUser === authorName) return;
-    const res = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${authorName}`);
-    const data = await res.json();
-    const subBtn = document.getElementById('subBtn');
-    if(data.subscribed) {
-        subBtn.innerText = "Вы подписаны";
-        subBtn.classList.add('active');
-    }
+    try {
+        const res = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${authorName}`);
+        const data = await res.json();
+        const subBtn = document.getElementById('subBtn');
+        if(data.subscribed) {
+            subBtn.innerText = "Вы подписаны";
+            subBtn.classList.add('active');
+        }
+    } catch(e) {}
 }
 
 document.getElementById('likeBtn').onclick = async function() {
@@ -290,6 +299,7 @@ document.getElementById('subBtn').onclick = async function() {
     const data = await res.json();
     this.innerText = (data.status === 'subscribed') ? "Вы подписаны" : "Подписаться";
     this.classList.toggle('active', data.status === 'subscribed');
+    
     const subRes = await fetch(`${API_URL}/subscribe/count/${authorName}`);
     const subData = await subRes.json();
     document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
@@ -300,13 +310,11 @@ function renderRecommended(videos, currentId) {
     const recs = videos.filter(v => v._id != currentId).slice(0, 10);
     list.innerHTML = recs.map(v => {
         const thumbSrc = v.thumbnail_url ? v.thumbnail_url : `${v.url}#t=0.1`;
-        const thumbTag = v.thumbnail_url 
-            ? `<img src="${thumbSrc}" class="side-thumb">` 
-            : `<video src="${thumbSrc}" class="side-thumb" muted></video>`;
-
         return `
         <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
-            <div class="side-thumb-wrapper">${thumbTag}</div>
+            <div class="side-thumb-wrapper">
+                <img src="${thumbSrc}" class="side-thumb" onerror="this.style.display='none'">
+            </div>
             <div class="side-info">
                 <div class="title-small">${v.title}</div>
                 <div class="meta-small">@${v.author_name}</div>
