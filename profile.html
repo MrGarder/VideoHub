@@ -26,7 +26,7 @@
         width: 130px; height: 130px; border-radius: 50%; border: 5px solid #0b0912;
         background: linear-gradient(45deg, #5143ff, #8b5cf6); object-fit: cover;
         display: flex; align-items: center; justify-content: center; font-size: 50px; font-weight: bold;
-        background-position: center;
+        background-position: center; background-size: cover;
     }
     .user-info h1 { margin: 0; font-size: 32px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .controls { margin-left: auto; display: flex; gap: 10px; padding-bottom: 10px; }
@@ -96,7 +96,7 @@
     <input type="file" accept="image/*" id="avatarInput">
     <label>Баннер</label>
     <input type="file" accept="image/*" id="bannerInput">
-    <button class="btn btn-upload" style="width:100%; margin-top:15px" onclick="saveProfile()">Сохранить изменения</button>
+    <button id="saveBtn" class="btn btn-upload" style="width:100%; margin-top:15px" onclick="saveProfile()">Сохранить изменения</button>
     <button class="btn btn-edit" style="width:100%; margin-top:10px;" onclick="closeModals()">Отмена</button>
   </div>
 </div>
@@ -122,44 +122,45 @@
 
   async function load() {
     try {
-        // 1. Загружаем основное — видео автора
-        const vidRes = await fetch(`${API_URL}/user-videos/${targetUser}`);
-        if (!vidRes.ok) throw new Error('Ошибка сети');
-        const userVideos = await vidRes.json();
+        // 1. Загружаем данные профиля (фото и баннер) с сервера
+        const profileRes = await fetch(`${API_URL}/user-profile/${targetUser}`);
+        const profile = await profileRes.json();
 
-        // 2. Загружаем статус подписки (отдельно, чтобы не тормозить страницу)
-        let isSubscribed = false;
-        try {
-            if (currentUser && currentUser !== targetUser) {
-                const subRes = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
-                const status = await subRes.json();
-                isSubscribed = status.subscribed;
-            }
-        } catch(e) { console.warn("Статус подписки не загружен"); }
-
-        // 3. Загружаем количество подписчиков
-        let subsCount = 0;
-        try {
-            const scRes = await fetch(`${API_URL}/subscribe/count/${targetUser}`);
-            const scData = await scRes.json();
-            subsCount = scData.count || 0;
-        } catch(e) { console.warn("Счетчик подписчиков не загружен"); }
+        // Отображаем ник
+        document.getElementById('displayUsername').innerText = profile.username || `@${targetUser}`;
         
-        // 4. Отрисовка профиля
-        const profileData = JSON.parse(localStorage.getItem(`profile_${targetUser}`) || '{}');
-        document.getElementById('displayUsername').innerText = profileData.name || `@${targetUser}`;
-        document.getElementById('videoStats').innerText = `${subsCount} подписчиков • ${userVideos.length} видео`;
-        
+        // Отображаем аватарку
         const avatarEl = document.getElementById('userAvatar');
-        if(profileData.avatar) {
+        if(profile.avatarUrl) {
             avatarEl.innerHTML = '';
-            avatarEl.style.backgroundImage = `url(${profileData.avatar})`;
-            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.style.backgroundImage = `url(${profile.avatarUrl})`;
         } else {
             avatarEl.innerText = targetUser ? targetUser[0].toUpperCase() : '?';
             avatarEl.style.backgroundImage = 'none';
         }
-        if(profileData.banner) document.getElementById('bannerImg').src = profileData.banner;
+
+        // Отображаем баннер
+        if(profile.bannerUrl) {
+            document.getElementById('bannerImg').src = profile.bannerUrl;
+        }
+
+        // 2. Загружаем видео автора
+        const vidRes = await fetch(`${API_URL}/user-videos/${targetUser}`);
+        const userVideos = await vidRes.json();
+
+        // 3. Статус подписки и количество
+        let isSubscribed = false;
+        if (currentUser && currentUser !== targetUser) {
+            const subRes = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
+            const status = await subRes.json();
+            isSubscribed = status.subscribed;
+        }
+
+        const scRes = await fetch(`${API_URL}/subscribe/count/${targetUser}`);
+        const scData = await scRes.json();
+        const subsCount = scData.count || 0;
+
+        document.getElementById('videoStats').innerText = `${subsCount} подписчиков • ${userVideos.length} видео`;
 
         // Кнопки управления
         const controls = document.getElementById('profileControls');
@@ -177,9 +178,8 @@
         }
 
         grid.innerHTML = userVideos.map(v => {
-            const hasThumb = v.thumbnail_url && v.thumbnail_url !== 'null';
             const videoSrc = v.url.startsWith('http') ? v.url : `${API_URL}${v.url}`;
-            const thumbSrc = hasThumb ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`) : '';
+            const thumbSrc = v.thumbnail_url;
             
             return `
               <div class="video-card">
@@ -193,7 +193,7 @@
                      onmouseenter="this.querySelector('video').play(); if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
                      onmouseleave="const vid=this.querySelector('video'); vid.pause(); vid.currentTime=0.1; if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
                     <video src="${videoSrc}#t=0.1" muted loop preload="metadata" playsinline></video>
-                    ${hasThumb ? `<img src="${thumbSrc}" class="main-thumb">` : ''}
+                    ${thumbSrc ? `<img src="${thumbSrc}" class="main-thumb">` : ''}
                 </div>
                 <div class="card-info">
                     <b>${v.title}</b>
@@ -207,36 +207,51 @@
         }).join('');
     } catch(e) {
         console.error("Ошибка загрузки профиля:", e);
-        document.getElementById('displayUsername').innerText = `@${targetUser}`;
-        document.getElementById('videoStats').innerText = "Ошибка загрузки данных";
     }
   }
 
-  function saveProfile() {
+  async function saveProfile() {
+      const btn = document.getElementById('saveBtn');
       const newName = document.getElementById('newName').value;
-      const avatarInput = document.getElementById('avatarInput');
-      const bannerInput = document.getElementById('bannerInput');
-      
-      let profileData = JSON.parse(localStorage.getItem(`profile_${currentUser}`) || '{}');
-      if(newName) profileData.name = newName;
+      const avatarFile = document.getElementById('avatarInput').files[0];
+      const bannerFile = document.getElementById('bannerInput').files[0];
 
-      const readAndSave = (input, key, callback) => {
-          if(input.files && input.files[0]) {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                  profileData[key] = e.target.result;
-                  callback();
-              };
-              reader.readAsDataURL(input.files[0]);
-          } else callback();
-      };
+      btn.innerText = "Сохранение...";
+      btn.disabled = true;
 
-      readAndSave(avatarInput, 'avatar', () => {
-          readAndSave(bannerInput, 'banner', () => {
-              localStorage.setItem(`profile_${currentUser}`, JSON.stringify(profileData));
-              location.reload();
-          });
-      });
+      try {
+          // 1. Если меняем имя
+          if (newName) {
+              await fetch(`${API_URL}/update-profile`, {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ oldUsername: currentUser, newUsername: newName })
+              });
+              localStorage.setItem('currentUser', newName.trim());
+          }
+
+          // 2. Если загружаем аватар
+          if (avatarFile) {
+              const formData = new FormData();
+              formData.append('avatar', avatarFile);
+              formData.append('username', localStorage.getItem('currentUser'));
+              await fetch(`${API_URL}/update-avatar`, { method: 'POST', body: formData });
+          }
+
+          // 3. Если загружаем баннер
+          if (bannerFile) {
+              const formData = new FormData();
+              formData.append('banner', bannerFile);
+              formData.append('username', localStorage.getItem('currentUser'));
+              await fetch(`${API_URL}/update-banner`, { method: 'POST', body: formData });
+          }
+
+          location.reload();
+      } catch (e) {
+          alert("Ошибка при сохранении");
+          btn.innerText = "Сохранить изменения";
+          btn.disabled = false;
+      }
   }
 
   async function toggleSubscribe() {
