@@ -49,7 +49,6 @@ async function connectDB() {
         await client.connect();
         db = client.db(dbName);
         console.log("✅ MongoDB подключена успешно");
-        // Создаем индекс для уникальности никнеймов в базе
         await db.collection('users').createIndex({ username: 1 }, { unique: true });
     } catch (err) {
         console.error("❌ Ошибка подключения к MongoDB:", err.message);
@@ -65,12 +64,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage, limits: { fileSize: 100 * 1024 * 1024 } });
 const uploadFields = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
 
+// Мултер для картинок (аватарки/баннеры)
+const imgUpload = multer({ storage: storage });
+
 // --- МАРШРУТЫ: АВТОРИЗАЦИЯ ---
 
 app.post('/register', async (req, res) => {
     const { username, password, email } = req.body;
-    
-    // Очистка ника от пробелов
     const cleanUsername = username ? username.trim() : "";
 
     if (!cleanUsername || cleanUsername.length < 3) {
@@ -78,7 +78,6 @@ app.post('/register', async (req, res) => {
     }
 
     try {
-        // Проверка на уникальность (регистронезависимая)
         const existingUser = await db.collection('users').findOne({ 
             username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') } 
         });
@@ -92,6 +91,8 @@ app.post('/register', async (req, res) => {
             username: cleanUsername,
             password: hashedPassword,
             email,
+            avatar_url: '',
+            banner_url: '',
             created_at: new Date()
         });
         res.status(201).send('Пользователь создан');
@@ -109,13 +110,18 @@ app.post('/login', async (req, res) => {
         });
         if (user) {
             const isValid = await bcrypt.compare(password, user.password);
-            if (isValid) res.status(200).json({ username: user.username });
+            if (isValid) res.status(200).json({ 
+                username: user.username,
+                avatarUrl: user.avatar_url,
+                bannerUrl: user.banner_url
+            });
             else res.status(401).send('Неверный пароль');
         } else res.status(404).send('Пользователь не найден');
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
-// --- НОВЫЙ МАРШРУТ: ОБНОВЛЕНИЕ ПРОФИЛЯ ДЛЯ ВСЕХ ---
+// --- МАРШРУТЫ: ОБНОВЛЕНИЕ ПРОФИЛЯ ---
+
 app.post('/update-profile', async (req, res) => {
     const { oldUsername, newUsername } = req.body;
     const cleanNewName = newUsername ? newUsername.trim() : "";
@@ -125,7 +131,6 @@ app.post('/update-profile', async (req, res) => {
     }
 
     try {
-        // Проверяем, не занят ли ник кем-то другим
         const userExists = await db.collection('users').findOne({ 
             username: { $regex: new RegExp(`^${cleanNewName}$`, 'i') } 
         });
@@ -134,28 +139,67 @@ app.post('/update-profile', async (req, res) => {
             return res.status(400).send("Этот никнейм уже занят");
         }
 
-        // 1. Обновляем в коллекции пользователей
-        await db.collection('users').updateOne(
-            { username: oldUsername },
-            { $set: { username: cleanNewName } }
-        );
-
-        // 2. Обновляем имя автора во всех его видео
-        await db.collection('videos').updateMany(
-            { author_name: oldUsername },
-            { $set: { author_name: cleanNewName } }
-        );
-
-        // 3. Обновляем имя в комментариях
-        await db.collection('video_comments').updateMany(
-            { user_name: oldUsername },
-            { $set: { user_name: cleanNewName } }
-        );
+        await db.collection('users').updateOne({ username: oldUsername }, { $set: { username: cleanNewName } });
+        await db.collection('videos').updateMany({ author_name: oldUsername }, { $set: { author_name: cleanNewName } });
+        await db.collection('video_comments').updateMany({ user_name: oldUsername }, { $set: { user_name: cleanNewName } });
 
         res.json({ success: true, newUsername: cleanNewName });
-    } catch (err) {
-        res.status(500).send("Ошибка сервера: " + err.message);
-    }
+    } catch (err) { res.status(500).send("Ошибка сервера: " + err.message); }
+});
+
+// ОБНОВЛЕНИЕ АВАТАРКИ
+app.post('/update-avatar', imgUpload.single('avatar'), async (req, res) => {
+    const { username } = req.body;
+    if (!req.file) return res.status(400).send('Файл не выбран');
+    try {
+        const user = await db.collection('users').findOne({ username });
+        if (user.avatar_id) await cloudinary.uploader.destroy(user.avatar_id);
+
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "videohub/profiles",
+            quality: "auto",
+            transformation: [{ width: 200, height: 200, crop: "fill" }]
+        });
+
+        await db.collection('users').updateOne({ username }, { 
+            $set: { avatar_url: result.secure_url, avatar_id: result.public_id } 
+        });
+
+        fs.unlinkSync(req.file.path);
+        res.json({ success: true, avatarUrl: result.secure_url });
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// ОБНОВЛЕНИЕ БАННЕРА
+app.post('/update-banner', imgUpload.single('banner'), async (req, res) => {
+    const { username } = req.body;
+    if (!req.file) return res.status(400).send('Файл не выбран');
+    try {
+        const user = await db.collection('users').findOne({ username });
+        if (user.banner_id) await cloudinary.uploader.destroy(user.banner_id);
+
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "videohub/banners",
+            quality: "auto",
+            transformation: [{ width: 1200, height: 400, crop: "fill" }]
+        });
+
+        await db.collection('users').updateOne({ username }, { 
+            $set: { banner_url: result.secure_url, banner_id: result.public_id } 
+        });
+
+        fs.unlinkSync(req.file.path);
+        res.json({ success: true, bannerUrl: result.secure_url });
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// Получение профиля (аватарка и прочее)
+app.get('/user-profile/:username', async (req, res) => {
+    try {
+        const user = await db.collection('users').findOne({ username: req.params.username });
+        if (!user) return res.status(404).send('Не найден');
+        res.json({ username: user.username, avatarUrl: user.avatar_url, bannerUrl: user.banner_url });
+    } catch (err) { res.status(500).send(err.message); }
 });
 
 // --- МАРШРУТЫ: ВИДЕО ---
@@ -167,8 +211,6 @@ app.post('/upload', uploadFields, async (req, res) => {
         if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
 
         const videoLocalPath = files.video[0].path;
-
-        // Загрузка с авто-сжатием (качество 'auto' и формат 'auto')
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video",
             folder: "videohub/videos",
@@ -202,8 +244,7 @@ app.post('/upload', uploadFields, async (req, res) => {
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
         res.status(200).send('Опубликовано!');
     } catch (err) { 
-        console.error(err);
-        res.status(500).send("Ошибка загрузки в облако: " + err.message); 
+        res.status(500).send("Ошибка загрузки: " + err.message); 
     }
 });
 
