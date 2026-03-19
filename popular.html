@@ -56,7 +56,6 @@
       width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative;
     }
     
-    /* ФИКС ОБЛОЖЕК: Растягиваем на весь блок */
     .thumb-wrapper img, .thumb-wrapper video {
       width: 100%; height: 100%; object-fit: cover;
       position: absolute; top: 0; left: 0;
@@ -67,7 +66,6 @@
     .video-info { padding: 18px; }
     .video-info h4 { margin: 0 0 8px 0; font-size: 17px; color: #fff; }
     
-    /* СТИЛЬ ДЛЯ ЛАЙКОВ */
     .stats { display: flex; align-items: center; gap: 15px; font-size: 14px; color: #aaa; }
     .stats b { color: #fff; }
     .stats .like-section { display: flex; align-items: center; gap: 4px; color: #ff4757; }
@@ -85,6 +83,8 @@
 </div>
 
 <script>
+  const API_URL = "https://videohub-c48i.onrender.com";
+
   function playPreview(card) {
       const v = card.querySelector('video');
       const i = card.querySelector('img');
@@ -108,24 +108,27 @@
   async function loadPopular() {
     const grid = document.getElementById('popularGrid');
     try {
-      // ИСПРАВЛЕНО: относительный путь для работы на хостинге
-      const res = await fetch('/videos');
+      const res = await fetch(`${API_URL}/videos`);
       const videos = await res.json();
       
-      console.log("Данные с сервера:", videos);
-
-      // Сортировка по популярности (просмотры + лайки*2)
       videos.sort((a, b) => ((b.views || 0) + (b.likes || 0) * 2) - ((a.views || 0) + (a.likes || 0) * 2));
 
       grid.innerHTML = videos.slice(0, 20).map((v, index) => {
-        const thumb = v.thumbnail_url ? `<img src="${v.thumbnail_url}">` : `<img src="https://via.placeholder.com/640x360/111/444?text=No+Thumbnail" style="opacity:0.5">`;
+        const videoSrc = v.url.startsWith('http') ? v.url : `${API_URL}${v.url}`;
+        const thumbSrc = v.thumbnail_url 
+          ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`)
+          : null;
+
+        const thumbImg = thumbSrc 
+          ? `<img src="${thumbSrc}">` 
+          : `<img src="https://via.placeholder.com/640x360/111/444?text=Video" style="opacity:0.5">`;
         
         return `
           <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${v.id}'">
             <div class="trending-badge">#${index + 1}</div>
             <div class="thumb-wrapper">
-              ${thumb}
-              <video src="${v.url}" muted loop preload="none"></video>
+              ${thumbImg}
+              <video src="${videoSrc}" muted loop preload="metadata" playsinline></video>
             </div>
             <div class="video-info">
               <h4>${v.title || 'Без названия'}</h4>
@@ -139,7 +142,8 @@
         `;
       }).join('');
     } catch (e) {
-      grid.innerHTML = "Ошибка сервера. Проверь консоль.";
+      grid.innerHTML = "<p style='text-align:center'>Ошибка загрузки данных.</p>";
+      console.error(e);
     }
   }
 
