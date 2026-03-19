@@ -184,10 +184,8 @@
 <script>
   let mode = "login";
   
-  // Авто-определение URL. Если запущено локально, стучимся на Render.
-  const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || !window.location.hostname)
-    ? "https://videohub-xt5y.onrender.com" 
-    : "";
+  // ИСПРАВЛЕНО: Теперь адрес всегда ведет на твой актуальный сервер Render
+  const API_URL = "https://videohub-c48i.onrender.com";
 
   window.onload = function () {
       google.accounts.id.initialize({
@@ -263,7 +261,6 @@
         if (!loginVal || !passInput.value) return alert("Заполните все поля!");
         
         endpoint = "/login";
-        // Сервер ждет 'loginData' для авторизации
         payload = {
             loginData: loginVal, 
             password: passInput.value
@@ -274,7 +271,6 @@
         if (!userVal || !emailVal || !passInput.value) return alert("Заполните все поля!");
         
         endpoint = "/register";
-        // Сервер ждет 'username' для регистрации
         payload = {
             username: userVal,
             email: emailVal,
@@ -292,7 +288,6 @@
             body: JSON.stringify(payload)
         });
 
-        // Пытаемся распарсить ответ
         const contentType = response.headers.get("content-type");
         let data;
         if (contentType && contentType.includes("application/json")) {
