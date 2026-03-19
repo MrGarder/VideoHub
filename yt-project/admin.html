@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>VideoHub — Панель Управления</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --glass: rgba(255,255,255,0.05);
+      --accent: #6b5cff;
+      --danger: #ff4e4e;
+      --text: #fff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0f1a, #1b1630);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stats-card {
+      background: var(--glass);
+      padding: 15px 25px;
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    .video-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    .video-table th {
+      text-align: left;
+      padding: 10px 15px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 400;
+      font-size: 14px;
+    }
+
+    .video-row {
+      background: var(--glass);
+      transition: 0.3s;
+    }
+
+    .video-row:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .video-row td {
+      padding: 15px;
+    }
+
+    .video-row td:first-child { border-radius: 12px 0 0 12px; }
+    .video-row td:last-child { border-radius: 0 12px 12px 0; }
+
+    .thumb-preview {
+      width: 100px;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .video-info b { display: block; margin-bottom: 4px; }
+    .video-info span { color: rgba(255,255,255,0.5); font-size: 13px; }
+
+    .del-btn {
+      background: rgba(255, 78, 78, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255, 78, 78, 0.2);
+      padding: 8px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .del-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    /* Мобилка */
+    @media (max-width: 600px) {
+      .video-table thead { display: none; }
+      .video-row td { display: block; text-align: center; }
+      .thumb-preview { width: 100%; max-width: 200px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-container">
+  <div class="header">
+    <div>
+      <a href="index.html" class="back-link">← Вернуться на сайт</a>
+      <h1>Админ-панель</h1>
+    </div>
+    <div class="stats-card">
+      <span id="totalCount">0</span> видео в базе
+    </div>
+  </div>
+
+  <table class="video-table">
+    <thead>
+      <tr>
+        <th>Превью</th>
+        <th>Информация о видео</th>
+        <th>Действие</th>
+      </tr>
+    </thead>
+    <tbody id="adminList">
+      </tbody>
+  </table>
+</div>
+
+<script>
+  // СЮДА ВПИШИ СВОЙ НИК ИЗ LOCALSTORAGE
+  const ADMIN_NICKNAME = "MrGarder"; 
+
+  function checkAccess() {
+    const user = localStorage.getItem('currentUser');
+    if (user !== ADMIN_NICKNAME) {
+      document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:100px;'>403: Доступ запрещен. Ты не админ!</h1>";
+      setTimeout(() => { location.href = 'index.html'; }, 2000);
+    }
+  }
+
+  async function loadVideos() {
+    try {
+      const res = await fetch('/videos');
+      const videos = await res.json();
+      
+      document.getElementById('totalCount').innerText = videos.length;
+      const list = document.getElementById('adminList');
+      
+      if (videos.length === 0) {
+        list.innerHTML = '<tr><td colspan="3" style="text-align:center;">Видео пока нет</td></tr>';
+        return;
+      }
+
+      list.innerHTML = videos.map(v => `
+        <tr class="video-row">
+          <td>
+            <img src="${v.thumbnail_url || 'placeholder.png'}" class="thumb-preview">
+          </td>
+          <td class="video-info">
+            <b>${v.title}</b>
+            <span>Автор: @${v.author_name} | ID: ${v._id}</span>
+          </td>
+          <td>
+            <button class="del-btn" onclick="deleteVideo('${v._id}')">Удалить</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      console.error("Ошибка загрузки:", err);
+    }
+  }
+
+  async function deleteVideo(id) {
+    if (!confirm("Удалить это видео навсегда? Восстановить не получится!")) return;
+
+    try {
+      const res = await fetch(`/admin/delete-video/${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        loadVideos(); // Обновляем список
+      } else {
+        alert("Ошибка при удалении: " + data.error);
+      }
+    } catch (err) {
+      alert("Сервер не отвечает");
+    }
+  }
+
+  // Запуск
+  checkAccess();
+  loadVideos();
+</script>
+
+</body>
+</html>
