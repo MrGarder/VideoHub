@@ -133,6 +133,18 @@ app.post('/videos/:id/view', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- ДАННЫЕ ПРОФИЛЯ (ВИДЕО АВТОРА) ---
+
+app.get('/user-videos/:username', async (req, res) => {
+    try {
+        const videos = await db.collection('videos')
+            .find({ author_name: req.params.username })
+            .sort({ created_at: -1 })
+            .toArray();
+        res.json(videos);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
 // --- ЛАЙКИ И ДИЗЛАЙКИ ---
 
 app.get('/videos/:id/likes-status', async (req, res) => {
@@ -270,7 +282,6 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
 
         await db.collection('videos').deleteOne({ _id: new ObjectId(id) });
         
-        // Удаляем файлы
         if (fileName) {
             const filePath = path.join(__dirname, 'uploads', fileName);
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
