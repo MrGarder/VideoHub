@@ -112,6 +112,7 @@
 </div>
 
 <script>
+  const API_URL = "https://videohub-c48i.onrender.com";
   const currentUser = localStorage.getItem('currentUser');
   const urlParams = new URLSearchParams(location.search);
   const targetUser = urlParams.get('user') || currentUser;
@@ -122,8 +123,8 @@
   async function load() {
     try {
         const [vidRes, subRes] = await Promise.all([
-            fetch('/videos'),
-            fetch(`/subscribe/count/${targetUser}`)
+            fetch(`${API_URL}/videos`),
+            fetch(`${API_URL}/subscribe/count/${targetUser}`)
         ]);
         
         const all = await vidRes.json();
@@ -148,8 +149,8 @@
         const controls = document.getElementById('profileControls');
         if (targetUser === currentUser) {
             controls.innerHTML = `<button class="btn btn-edit" onclick="openModal('editModal')">⚙️ Настроить</button>`;
-        } else {
-            const statusRes = await fetch(`/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
+        } else if (currentUser) {
+            const statusRes = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
             const status = await statusRes.json();
             controls.innerHTML = `<button class="btn btn-sub ${status.subscribed ? 'active' : ''}" id="mainSubBtn">${status.subscribed ? 'Вы подписаны' : 'Подписаться'}</button>`;
             document.getElementById('mainSubBtn').onclick = toggleSubscribe;
@@ -157,6 +158,9 @@
 
         document.getElementById('myVideos').innerHTML = userVideos.map(v => {
             const hasThumb = v.thumbnail_url && v.thumbnail_url !== 'null';
+            const videoSrc = v.url.startsWith('http') ? v.url : `${API_URL}${v.url}`;
+            const thumbSrc = hasThumb ? (v.thumbnail_url.startsWith('http') ? v.thumbnail_url : `${API_URL}${v.thumbnail_url}`) : '';
+            
             return `
               <div class="video-card">
                 ${targetUser === currentUser ? `
@@ -169,9 +173,9 @@
                      onmouseenter="this.querySelector('video').play(); if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
                      onmouseleave="const vid=this.querySelector('video'); vid.pause(); vid.currentTime=0.1; if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
                     
-                    <video src="${v.url}#t=0.1" muted loop preload="metadata" playsinline></video>
+                    <video src="${videoSrc}#t=0.1" muted loop preload="metadata" playsinline></video>
                     
-                    ${hasThumb ? `<img src="${v.thumbnail_url}" class="main-thumb">` : ''}
+                    ${hasThumb ? `<img src="${thumbSrc}" class="main-thumb">` : ''}
                 </div>
                 <div class="card-info">
                     <b>${v.title}</b>
@@ -216,7 +220,8 @@
   }
 
   async function toggleSubscribe() {
-      await fetch('/subscribe', {
+      if(!currentUser) return alert("Нужно войти в аккаунт!");
+      await fetch(`${API_URL}/subscribe`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ follower: currentUser, authorName: targetUser })
@@ -226,7 +231,7 @@
 
   async function del(id) {
     if(confirm('Удалить видео?')) {
-        await fetch(`/delete-video/${id}`, { method:'DELETE' });
+        await fetch(`${API_URL}/delete-video/${id}`, { method:'DELETE' });
         load();
     }
   }
@@ -240,7 +245,7 @@
   async function saveVideoChanges() {
       const id = document.getElementById('editVideoId').value;
       const title = document.getElementById('editVTitle').value;
-      await fetch(`/videos/${id}`, {
+      await fetch(`${API_URL}/videos/${id}`, {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ title })
