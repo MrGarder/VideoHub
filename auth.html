@@ -123,33 +123,15 @@
     .social-block {
       display: flex;
       flex-direction: column;
+      align-items: center;
       gap: 12px;
     }
 
     #googleBtn {
+        width: 100%;
         display: flex;
         justify-content: center;
-        width: 100%;
     }
-
-    .social-btn {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      cursor: pointer;
-      transition: 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      color: #fff;
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-    .social-btn:hover { background: rgba(255,255,255,0.12); }
-    .social-btn img { width: 18px; }
   </style>
 </head>
 <body>
@@ -174,17 +156,11 @@
 
   <div class="social-block">
     <div id="googleBtn"></div>
-    <div class="social-btn">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/VK_Compact_Logo_%282021-present%29.svg"> 
-        Войти через VK
-    </div>
   </div>
 </div>
 
 <script>
   let mode = "login";
-  
-  // ИСПРАВЛЕНО: Теперь адрес всегда ведет на твой актуальный сервер Render
   const API_URL = "https://videohub-c48i.onrender.com";
 
   window.onload = function () {
