@@ -155,7 +155,7 @@ function goBack() {
     const player = document.getElementById('player');
     if (currentVideoData && player && !player.ended && player.currentTime > 0) {
         const miniData = {
-            id: currentVideoData._id, // Изменено на _id
+            id: currentVideoData._id,
             title: currentVideoData.title,
             url: currentVideoData.url,
             time: player.currentTime
@@ -173,7 +173,7 @@ async function initWatchPage() {
     try {
         const res = await fetch(`${API_URL}/videos`);
         const allVideos = await res.json();
-        const video = allVideos.find(v => v._id === videoId); // Изменено на _id
+        const video = allVideos.find(v => v._id === videoId);
         
         if (!video) {
             document.getElementById('videoTitle').innerText = "Видео не найдено";
@@ -191,20 +191,30 @@ async function initWatchPage() {
         document.getElementById('descText').innerText = video.description || "Нет описания";
         document.getElementById('videoStats').innerText = `${video.views || 0} просмотров • ${formatDate(video.created_at)}`;
 
-        const profileData = JSON.parse(localStorage.getItem(`profile_${authorName}`) || '{}');
-        const avatarDiv = document.getElementById('authorAvatar');
-        document.getElementById('authorName').innerText = "@" + authorName;
+        // ПОЛУЧАЕМ ДАННЫЕ АВТОРА С СЕРВЕРА
+        try {
+            const profileRes = await fetch(`${API_URL}/user-profile/${authorName}`);
+            const profile = await profileRes.json();
+            
+            const avatarDiv = document.getElementById('authorAvatar');
+            document.getElementById('authorName').innerText = "@" + authorName;
 
-        if (profileData.avatar) {
-            avatarDiv.innerText = '';
-            avatarDiv.style.backgroundImage = `url(${profileData.avatar})`;
-        } else {
-            avatarDiv.innerText = authorName[0].toUpperCase();
-            avatarDiv.style.backgroundImage = 'none';
+            if (profile.avatarUrl) {
+                avatarDiv.innerText = '';
+                avatarDiv.style.backgroundImage = `url(${profile.avatarUrl})`;
+            } else {
+                avatarDiv.innerText = authorName[0].toUpperCase();
+                avatarDiv.style.backgroundImage = 'none';
+            }
+        } catch (e) {
+            console.warn("Не удалось загрузить аватар автора");
+            document.getElementById('authorName').innerText = "@" + authorName;
+            document.getElementById('authorAvatar').innerText = authorName[0].toUpperCase();
         }
+
         document.getElementById('authorLink').onclick = () => goToChannel(authorName);
 
-        // API запросы с использованием API_URL
+        // API запросы
         const subRes = await fetch(`${API_URL}/subscribe/count/${authorName}`);
         const subData = await subRes.json();
         document.getElementById('authorSubCount').innerText = `${subData.count || 0} подписчиков`;
