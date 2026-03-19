@@ -5,7 +5,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const cloudinary = require('cloudinary').v2; // Подключили Cloudinary
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
 
 const app = express();
@@ -56,7 +56,7 @@ async function connectDB() {
 }
 connectDB();
 
-// --- НАСТРОЙКА MULTER (Временное хранилище перед отправкой в облако) ---
+// --- НАСТРОЙКА MULTER ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -95,7 +95,7 @@ app.post('/login', async (req, res) => {
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
-// --- МАРШРУТЫ: ВИДЕО (ЗАГРУЗКА В CLOUDINARY) ---
+// --- МАРШРУТЫ: ВИДЕО ---
 
 app.post('/upload', uploadFields, async (req, res) => {
     try {
@@ -105,41 +105,34 @@ app.post('/upload', uploadFields, async (req, res) => {
 
         const videoLocalPath = files.video[0].path;
 
-        // 1. Грузим видео в Cloudinary
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video",
             folder: "videohub/videos"
         });
 
-        // 2. Если есть превью, грузим его, если нет - делаем из видео
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
             const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, {
                 folder: "videohub/thumbs"
             });
             finalThumbUrl = thumbResult.secure_url;
-            // Удаляем временное превью
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
-            // Авто-превью из видео (первый кадр)
             finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
         }
 
-        // 3. Сохраняем в БД
         await db.collection('videos').insertOne({
             title,
             description: description || '',
             url: videoResult.secure_url,
             thumbnail_url: finalThumbUrl,
             author_name: username,
-            cloudinary_id: videoResult.public_id, // Сохраняем ID для удаления
+            cloudinary_id: videoResult.public_id,
             views: 0,
             created_at: new Date()
         });
 
-        // Удаляем временное видео с диска сервера
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
-
         res.status(200).send('Опубликовано!');
     } catch (err) { 
         console.error(err);
@@ -309,7 +302,6 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
             return res.status(403).json({ success: false, error: "Нет прав!" });
         }
         
-        // Удаляем из Cloudinary, если есть ID
         if (video.cloudinary_id) {
             await cloudinary.uploader.destroy(video.cloudinary_id, { resource_type: 'video' });
         }
