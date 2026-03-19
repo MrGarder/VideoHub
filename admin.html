@@ -49,6 +49,7 @@
       width: 100%;
       border-collapse: separate;
       border-spacing: 0 10px;
+      margin-bottom: 50px;
     }
 
     .video-table th {
@@ -110,6 +111,22 @@
       display: inline-block;
       margin-bottom: 5px;
     }
+
+    /* СТИЛИ ДЛЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ */
+    .user-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent);
+      margin-left: 5px;
+    }
+    .user-avatar-mini {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -121,10 +138,12 @@
       <h1>Панель Администратора</h1>
     </div>
     <div class="stats-card">
-      <span id="totalCount" style="font-weight: bold; color: var(--accent);">0</span> видео в системе
+      <span id="totalCount" style="font-weight: bold; color: var(--accent);">0</span> видео | 
+      <span id="userCount" style="font-weight: bold; color: var(--accent);">0</span> аккаунтов
     </div>
   </div>
 
+  <h2>Видеоролики</h2>
   <table class="video-table">
     <thead>
       <tr>
@@ -134,6 +153,19 @@
       </tr>
     </thead>
     <tbody id="adminList">
+    </tbody>
+  </table>
+
+  <h2>Зарегистрированные пользователи</h2>
+  <table class="video-table">
+    <thead>
+      <tr>
+        <th>Пользователь</th>
+        <th>Email / ID</th>
+        <th>Управление</th>
+      </tr>
+    </thead>
+    <tbody id="userList">
     </tbody>
   </table>
 </div>
@@ -193,30 +225,58 @@
     }
   }
 
+  async function loadUsers() {
+    try {
+      const res = await fetch(`${API_URL}/admin/users`);
+      const users = await res.json();
+      
+      document.getElementById('userCount').innerText = users.length;
+      const list = document.getElementById('userList');
+      
+      list.innerHTML = users.map(u => `
+        <tr class="video-row">
+          <td class="video-info">
+            <img src="${u.avatar || 'https://via.placeholder.com/32'}" class="user-avatar-mini">
+            <b style="display:inline;">${u.username}</b>
+            ${u.googleId ? '<span class="user-badge">Google</span>' : ''}
+          </td>
+          <td class="video-info">
+            <span>${u.email || 'Нет email'}</span><br>
+            <span style="font-size: 10px; opacity: 0.4;">ID: ${u._id}</span>
+          </td>
+          <td>
+            ${u.username !== ADMIN_NICKNAME ? `<button class="del-btn" onclick="deleteUser('${u._id}')">Бан</button>` : '—'}
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      console.error("Ошибка при загрузке пользователей:", err);
+    }
+  }
+
   async function deleteVideo(id) {
     if (!confirm("Ты уверен, что хочешь безвозвратно удалить это видео и файл с сервера?")) return;
-
     const myName = localStorage.getItem('currentUser') || localStorage.getItem('username');
-
     try {
-      const res = await fetch(`${API_URL}/admin/delete-video/${id}?username=${myName}`, {
-        method: 'DELETE'
-      });
-      
+      const res = await fetch(`${API_URL}/admin/delete-video/${id}?username=${myName}`, { method: 'DELETE' });
       const data = await res.json();
+      if (data.success) loadVideos(); 
+      else alert("Ошибка: " + (data.error || "Не удалось удалить"));
+    } catch (err) { alert("Ошибка соединения"); }
+  }
 
-      if (data.success) {
-        loadVideos(); 
-      } else {
-        alert("Ошибка доступа: " + (data.error || "Не удалось удалить"));
-      }
-    } catch (err) {
-      alert("Ошибка соединения с сервером");
-    }
+  async function deleteUser(id) {
+    if (!confirm("Удалить этот аккаунт из системы?")) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/delete-user/${id}`, { method: 'DELETE' });
+      if (res.ok) loadUsers();
+      else alert("Ошибка при удалении пользователя");
+    } catch (err) { alert("Ошибка соединения"); }
   }
 
   checkAccess();
   loadVideos();
+  loadUsers();
 </script>
 
 </body>
