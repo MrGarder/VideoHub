@@ -96,21 +96,25 @@ async function loadHistory() {
         }
 
         list.innerHTML = data.map(item => {
-            const videoUrl = item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`;
+            // В MongoDB ID видео это _id. В истории ID записи тоже _id.
+            const vidId = item._id; 
+            const videoUrl = item.url; // Cloudinary дает прямую ссылку
+
             return `
-                <div class="history-item" id="hist-item-${item.history_id}">
-                    <video class="thumb" src="${videoUrl}#t=0.5" muted onclick="location.href='watch.html?v=${item.id}'"></video>
+                <div class="history-item" id="hist-item-${vidId}">
+                    <video class="thumb" src="${videoUrl}#t=0.5" muted onclick="location.href='watch.html?v=${vidId}'"></video>
                     
-                    <div class="info-block" onclick="location.href='watch.html?v=${item.id}'">
-                        <div class="title">${item.title}</div>
+                    <div class="info-block" onclick="location.href='watch.html?v=${vidId}'">
+                        <div class="title">${item.title || 'Без названия'}</div>
                         <div class="time">Просмотрено: ${new Date(item.watched_at).toLocaleString('ru-RU')}</div>
                     </div>
 
-                    <button class="delete-one" title="Удалить из истории" onclick="deleteHistoryItem(${item.history_id})">✕</button>
+                    <button class="delete-one" title="Удалить из истории" onclick="deleteHistoryItem('${vidId}')">✕</button>
                 </div>
             `;
         }).join('');
     } catch (e) {
+        console.error(e);
         list.innerHTML = "<p style='text-align:center; color:#ff4444; padding:20px;'>Ошибка связи с сервером</p>";
     }
 }
