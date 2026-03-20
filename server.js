@@ -200,16 +200,18 @@ app.post('/upload', uploadFields, async (req, res) => {
         
         const videoLocalPath = files.video[0].path;
 
-        // ИСПОЛЬЗУЕМ upload_large И АСИНХРОННУЮ ОБРАБОТКУ ДЛЯ БОЛЬШИХ ФАЙЛОВ
+        // Загрузка большого файла
         const videoResult = await cloudinary.uploader.upload_large(videoLocalPath, {
             resource_type: "video", 
-            folder: "videohub/videos", 
-            quality: "auto",
-            eager: [
-                { format: 'mp4', transformation: [{ quality: "auto" }] }
-            ],
-            eager_async: true // Это решает проблему "Video is too large"
+            folder: "videohub/videos",
+            chunk_size: 6000000, // 6MB чанки
+            eager_async: true
         });
+
+        // ПРОВЕРКА: Если Cloudinary вернул ошибку или пустой результат
+        if (!videoResult || !videoResult.secure_url) {
+            throw new Error("Cloudinary не вернул URL видео");
+        }
 
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
@@ -217,10 +219,10 @@ app.post('/upload', uploadFields, async (req, res) => {
             finalThumbUrl = thumbResult.secure_url;
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
-            finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
+            // Безопасное создание превью из видео URL
+            finalThumbUrl = videoResult.secure_url.split('.').slice(0, -1).join('.') + ".jpg";
         }
 
-        // Сохраняем видео и получаем его ID для уведомлений
         const insertResult = await db.collection('videos').insertOne({
             title, description: description || '', url: videoResult.secure_url,
             thumbnail_url: finalThumbUrl, author_name: username, cloudinary_id: videoResult.public_id,
@@ -229,7 +231,7 @@ app.post('/upload', uploadFields, async (req, res) => {
 
         const videoId = insertResult.insertedId.toString();
 
-        // --- РАССЫЛКА УВЕДОМЛЕНИЙ ПОДПИСЧИКАМ ---
+        // Рассылка уведомлений
         try {
             const subscribers = await db.collection('subscriptions').find({ author_name: username }).toArray();
             if (subscribers.length > 0) {
@@ -244,12 +246,15 @@ app.post('/upload', uploadFields, async (req, res) => {
                 await db.collection('notifications').insertMany(notifications);
             }
         } catch (errNote) {
-            console.error("Ошибка рассылки уведомлений:", errNote);
+            console.error("Ошибка уведомлений:", errNote);
         }
 
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
         res.status(200).send('Опубликовано!');
-    } catch (err) { res.status(500).send("Ошибка загрузки: " + err.message); }
+    } catch (err) { 
+        console.error("Детальная ошибка загрузки:", err);
+        res.status(500).send("Ошибка загрузки: " + err.message); 
+    }
 });
 
 app.get('/videos', async (req, res) => {
