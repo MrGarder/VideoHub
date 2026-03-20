@@ -1,258 +1,161 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>VideoHub AI — Nexus Control</title>
-    <style>
-        :root {
-            --bg: #05050a;
-            --accent: #6b5cff;
-            --cyan: #00f2ff;
-            --pink: #ff00d4;
-            --red: #ff3333;
-            --text: #fff;
-            --glass: rgba(255, 255, 255, 0.03);
-        }
+  <meta charset="utf-8" />
+  <title>Changelog — WebDragons</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --bg1: #11111a;
+      --accent: #6b5cff;
+      --text: #fff;
+      --card-bg: rgba(255,255,255,0.06);
+      --glass: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.12);
+      --voice-cyan: #6a00ff; 
+      --success: #00ff88;
+      --danger: #ff4e4e;
+    }
 
-        body {
-            margin: 0; background: var(--bg); color: var(--text);
-            font-family: 'Inter', sans-serif; height: 100vh;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow: hidden; transition: background 0.8s, filter 0.3s;
-        }
+    html, body {
+      height: 100%; margin: 0; font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
+      color: var(--text); overflow-x: hidden;
+    }
 
-        /* Анимированная сетка */
-        .grid-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: linear-gradient(rgba(107, 92, 255, 0.05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(107, 92, 255, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px; z-index: -1;
-            perspective: 1000px;
-        }
+    /* Фирменное свечение WebDragons */
+    .bg-glow { 
+      position: fixed; right: -150px; top: -100px; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(107, 92, 255, 0.15) 0%, transparent 60%);
+      filter: blur(100px); z-index: 0; pointer-events: none; 
+    }
 
-        .status-card {
-            background: var(--glass); padding: 40px; border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(25px);
-            text-align: center; box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-            max-width: 500px; width: 90%; position: relative;
-            transform-style: preserve-3d;
-        }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      padding: 15px 25px; background: var(--glass); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(15px);
+    }
 
-        /* Визуализатор "голоса" */
-        .bars {
-            display: flex; justify-content: center; align-items: flex-end;
-            gap: 4px; height: 30px; margin-bottom: 20px;
-        }
-        .bar { width: 4px; background: var(--cyan); border-radius: 2px; transition: 0.2s; height: 5px; }
-        .active .bar { animation: bar-dance 0.5s infinite alternate; }
-        @keyframes bar-dance { 
-            from { height: 5px; } 
-            to { height: 30px; box-shadow: 0 0 10px var(--cyan); } 
-        }
+    .logo { font-weight: 800; font-size: 24px; text-decoration: none; color: #fff; letter-spacing: -1px; }
+    .logo span { color: var(--accent); }
 
-        .mic-sphere {
-            width: 140px; height: 140px;
-            background: radial-gradient(circle, var(--accent), #2015a3);
-            border-radius: 50%; margin: 0 auto 20px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 60px; cursor: pointer; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 0 30px rgba(107, 92, 255, 0.3); position: relative;
-        }
+    .container {
+      max-width: 850px; margin: 50px auto; padding: 0 20px; position: relative; z-index: 5;
+    }
 
-        .mic-sphere.active {
-            transform: scale(1.1) rotate(360deg);
-            box-shadow: 0 0 60px var(--cyan), inset 0 0 20px rgba(255,255,255,0.5);
-        }
+    .dev-header { text-align: center; margin-bottom: 60px; }
+    .dev-header h1 { font-size: 56px; margin: 0; font-weight: 900; letter-spacing: -2px; }
+    .dev-header p { color: rgba(255,255,255,0.5); font-size: 18px; margin-top: 10px; }
 
-        .pulse {
-            position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            border: 2px solid var(--cyan); opacity: 0;
-        }
-        .active .pulse { animation: ripple 1.5s infinite; }
-        @keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+    .update-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px;
+      padding: 35px; margin-bottom: 30px; backdrop-filter: blur(10px); 
+      transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
 
-        .log-box {
-            background: rgba(0, 0, 0, 0.6); border-radius: 12px;
-            padding: 15px; font-family: 'Monaco', monospace;
-            font-size: 13px; color: var(--cyan); margin-top: 15px;
-            border-left: 3px solid var(--accent); text-align: left;
-            min-height: 40px; overflow: hidden;
-        }
+    .update-card:hover {
+      border-color: var(--accent); background: rgba(255,255,255,0.08); transform: scale(1.01);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
 
-        .cmd-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 25px;
-        }
-        .cmd-item {
-            font-size: 9px; padding: 6px; background: rgba(255,255,255,0.05);
-            border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); color: #888;
-        }
+    .version-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .v-tag { background: var(--accent); color: #fff; padding: 5px 15px; border-radius: 10px; font-weight: 700; font-size: 13px; box-shadow: 0 0 20px rgba(107, 92, 255, 0.3); }
+    .v-tag.latest { background: var(--success); color: #000; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+    .v-date { color: rgba(255,255,255,0.3); font-size: 14px; }
 
-        /* Спец-режимы */
-        body.warning { background: #300505; }
-        body.matrix { background: #000; filter: hue-rotate(90deg) brightness(1.2); }
-        body.matrix .grid-bg { background-size: 20px 80px; }
+    .update-card h2 { margin: 0 0 20px 0; font-size: 26px; font-weight: 700; }
 
-        .back-link { margin-top: 25px; color: var(--text); text-decoration: none; opacity: 0.4; font-size: 14px; }
-        .back-link:hover { opacity: 1; text-shadow: 0 0 10px var(--accent); }
-    </style>
+    .changes-list { list-style: none; padding: 0; margin: 0; }
+    .changes-list li { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 18px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+    .changes-list li i { margin-top: 4px; font-size: 16px; min-width: 20px; text-align: center; }
+
+    .status-new { color: var(--success); }
+    .status-fix { color: var(--danger); }
+    .status-upd { color: #00d4ff; }
+
+    .author-note {
+      margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);
+      font-style: italic; color: rgba(255,255,255,0.4); font-size: 13px; display: flex; align-items: center; gap: 8px;
+    }
+    .author-note b { color: var(--accent); font-style: normal; }
+
+    .back-btn {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff;
+      padding: 10px 20px; border-radius: 14px; text-decoration: none; font-size: 14px; transition: 0.3s;
+    }
+    .back-btn:hover { background: var(--accent); box-shadow: 0 0 15px rgba(107, 92, 255, 0.4); }
+
+    footer { text-align: center; padding: 60px 0; color: rgba(255,255,255,0.2); font-size: 12px; letter-spacing: 1px; }
+  </style>
 </head>
-<body id="mainBody">
+<body>
 
-<div class="grid-bg"></div>
+  <div class="bg-glow"></div>
 
-<div class="status-card" id="card">
-    <div class="bars" id="visualizer">
-        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <header class="topbar">
+    <a href="index.html" class="logo">Video<span>Hub</span></a>
+    <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i> На главную</a>
+  </header>
+
+  <div class="container">
+    <section class="dev-header">
+      <h1>История обновлений</h1>
+      <p>Как <b>WebDragons</b> совершенствуют экосистему VideoHub</p>
+    </section>
+
+    <div class="update-card">
+      <div class="version-info">
+        <span class="v-tag latest">v1.5.0 — LATEST</span>
+        <span class="v-date">Сегодня, 2026</span>
+      </div>
+      <h2>Оптимизация ядра и вещание</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-satellite-dish status-new"></i> <b>Рассылка подписчикам:</b> Теперь при загрузке видео все подписчики мгновенно получают уведомление в «колокольчик».</li>
+        <li><i class="fas fa-user-slash status-fix"></i> <b>Удаление Ассистента:</b> Виртуальный помощник полностью исключен из кода. Система переведена на прямое автономное управление, что ускорило отклик интерфейса.</li>
+        <li><i class="fas fa-broom status-upd"></i> <b>Smart Cleanup:</b> Сервер теперь самостоятельно удаляет временные файлы из локального кэша сразу после их успешной отправки в облако.</li>
+        <li><i class="fas fa-bolt status-upd"></i> <b>Performance:</b> Глобальная оптимизация логики маршрутов (Routes) для снижения нагрузки на сервер.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
 
-    <div class="mic-sphere" id="mainMic">
-        <span id="micIcon">📡</span>
-        <div class="pulse"></div>
+    <div class="update-card" style="opacity: 0.9;">
+      <div class="version-info">
+        <span class="v-tag">v1.4.2</span>
+        <span class="v-date">20 Марта, 2026</span>
+      </div>
+      <h2>Умные пуши и @упоминания</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-bell status-new"></i> <b>Центр уведомлений:</b> Появилась возможность отслеживать активность через интерактивный список.</li>
+        <li><i class="fas fa-at status-new"></i> <b>Тегирование:</b> Реализована логика распознавания @никнеймов в комментариях для прямой связи.</li>
+        <li><i class="fas fa-bug status-fix"></i> <b>Стабильность:</b> Исправлена редкая ошибка воспроизведения контента в мини-плеере.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
-    
-    <h1 id="statusText">System Online</h1>
-    <div style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;" id="subStatus">Ready for voice input</div>
 
-    <div class="log-box" id="transcript">Waiting...</div>
-
-    <div class="cmd-grid">
-        <div class="cmd-item">🕒 Время</div>
-        <div class="cmd-item">🎭 Шутка</div>
-        <div class="cmd-item">🧪 Статус</div>
-        <div class="cmd-item">💻 Матрица</div>
-        <div class="cmd-item">⛅ Погода</div>
-        <div class="cmd-item">🧨 Удалить</div>
+    <div class="update-card" style="opacity: 0.8;">
+      <div class="version-info">
+        <span class="v-tag" style="background: #444; box-shadow: none;">v1.3.0</span>
+        <span class="v-date">10 Марта, 2026</span>
+      </div>
+      <h2>Голосовой движок и Хранилище</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-microphone-alt status-new"></i> <b>Voice Intelligence:</b> Полностью интегрирован поиск видео по голосовым командам.</li>
+        <li><i class="fas fa-server status-upd"></i> <b>Core:</b> Масштабная миграция базы данных на высокоскоростные кластеры для повышения отказоустойчивости.</li>
+        <li><i class="fas fa-tachometer-alt status-upd"></i> <b>Performance:</b> Оптимизация рендеринга тяжелых карточек видео на главной странице.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
-</div>
 
-<a href="index.html" class="back-link">TERMINATE SESSION</a>
-
-<script>
-    const mic = document.getElementById('mainMic');
-    const statusText = document.getElementById('statusText');
-    const transcriptBox = document.getElementById('transcript');
-    const body = document.getElementById('mainBody');
-    const visualizer = document.getElementById('visualizer');
-    
-    let isWaitingForConfirm = false;
-
-    function speak(text) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'ru-RU';
-        msg.pitch = 0.9; // Слегка басистый голос робота
-        msg.rate = 1.1;
-        window.speechSynthesis.speak(msg);
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ru-RU';
-        recognition.continuous = true;
-
-        window.onload = () => {
-            speak("Система Видео Хаб активирована. Проверка протоколов завершена.");
-            recognition.start();
-        };
-
-        recognition.onstart = () => {
-            mic.classList.add('active');
-            visualizer.classList.add('active');
-        };
-
-        recognition.onresult = (event) => {
-            const cmd = event.results[event.results.length - 1][0].transcript.toLowerCase();
-            transcriptBox.innerHTML = `<span style="color:var(--pink)">></span> ` + cmd;
-            handleCommand(cmd);
-        };
-
-        function handleCommand(cmd) {
-            // 1. Погода (Рандомная генерация)
-            if (cmd.includes("погода") || cmd.includes("градус")) {
-                const temps = [22, 18, 25, 30, 15];
-                const conditions = ["солнечно", "облачно", "дождливо", "ясно"];
-                speak(`Анализ атмосферы завершен. Сейчас ${temps[Math.floor(Math.random()*temps.length)]} градусов, ${conditions[Math.floor(Math.random()*conditions.length)]}.`);
-                return;
-            }
-
-            // 2. Время и Дата
-            if (cmd.includes("время") || cmd.includes("час")) {
-                const time = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-                speak(`Текущее системное время: ${time}`);
-                return;
-            }
-
-            // 3. Шутки
-            if (cmd.includes("шутка") || cmd.includes("анекдот")) {
-                const jokes = [
-                    "Почему Java-программисты носят очки? Потому что они не видят Sharp.",
-                    "Купил программист батон, а он 404.",
-                    "Сколько программистов нужно, чтобы закрутить лампочку? Ни одного, это аппаратная проблема."
-                ];
-                speak(jokes[Math.floor(Math.random()*jokes.length)]);
-                return;
-            }
-
-            // 4. Режимы интерфейса
-            if (cmd.includes("матрица") || cmd.includes("хакер")) {
-                speak("Входим в терминал Матрицы.");
-                body.className = 'matrix';
-                return;
-            }
-            if (cmd.includes("обычный") || cmd.includes("стандарт")) {
-                speak("Возврат к стандартным протоколам.");
-                body.className = '';
-                return;
-            }
-
-            // 5. Управление плеером (Симуляция)
-            if (cmd.includes("пауза") || cmd.includes("стоп")) {
-                speak("Медиапоток приостановлен.");
-                return;
-            }
-            if (cmd.includes("громче")) {
-                speak("Уровень громкости увеличен на 20 процентов.");
-                return;
-            }
-
-            // 6. Самоуничтожение (Прикол)
-            if (cmd.includes("самоуничтожение")) {
-                speak("Протокол самоуничтожения активирован. Десять. Девять. Восемь... Шучу. Я слишком ценный экземпляр.");
-                body.classList.add('warning');
-                setTimeout(() => body.classList.remove('warning'), 3000);
-                return;
-            }
-
-            // 7. Навигация
-            if (cmd.includes("домой") || cmd.includes("главная")) {
-                speak("Перенаправляю на главный узел.");
-                setTimeout(() => location.href = 'index.html', 1500);
-            }
-            else if (cmd.includes("найди")) {
-                const q = cmd.split("найди")[1];
-                speak(`Инициирую поиск: ${q}`);
-                setTimeout(() => location.href = `index.html?search=${encodeURIComponent(q)}`, 1500);
-            }
-
-            // 8. Удаление истории
-            if (cmd.includes("очисти историю")) {
-                isWaitingForConfirm = true;
-                body.classList.add('warning');
-                speak("Требуется подтверждение для удаления базы данных истории. Скажите: Да, подтверждаю.");
-            }
-            else if (isWaitingForConfirm && cmd.includes("да")) {
-                speak("База данных очищена. Следы стерты.");
-                body.classList.remove('warning');
-                isWaitingForConfirm = false;
-            }
-        }
-
-        recognition.onend = () => recognition.start();
-    }
-</script>
+    <footer>
+      MADE BY WEBDRAGONS &copy; 2026 | VIDEOHUB ECOSYSTEM
+    </footer>
+  </div>
 
 </body>
 </html>
