@@ -9,34 +9,22 @@
       --bg1: #1e1e2f;
       --glass: rgba(255,255,255,0.04);
       --text: #fff;
-      --accent: linear-gradient(135deg, #6b5cff, #8b5cf6);
-      --accent-solid: #6b5cff;
+      --accent:#6b5cff;
       --muted: rgba(255,255,255,0.7);
-      --card-bg: rgba(255,255,255,0.06);
     }
     html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background: linear-gradient(135deg,#11111a,#1b1630);color:var(--text);-webkit-font-smoothing:antialiased}
     
-    .logo {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -1px;
-      cursor: pointer;
-      background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .logo span { color: #8b5cf6; -webkit-text-fill-color: #8b5cf6; }
-
     .topbar{display:flex;align-items:center;justify-content: space-between;padding:12px 20px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:20;backdrop-filter: blur(10px);}
     .topbar-left { display: flex; align-items: center; gap: 12px; }
 
     .back-btn {
-      background: rgba(140,70,255,.15); border: 1px solid rgba(140,70,255,.3);
+      background: rgba(140,70,255,.25); border: 1px solid rgba(140,70,255,.45);
       color: #dcd1ff; padding: 6px 14px; margin-right: 12px; border-radius: 10px;
-      font-size: 14px; cursor: pointer; transition: .25s;
+      font-size: 16px; cursor: pointer; transition: .25s;
     }
-    .back-btn:hover { background: rgba(140,70,255,.3); }
+    .back-btn:hover { background: rgba(140,70,255,.45); }
 
+    /* Уведомления */
     .noti-wrapper { position: relative; cursor: pointer; }
     #notiBtn { background: none; border: none; font-size: 20px; color: var(--text); cursor: pointer; position: relative; }
     #notiCount { position: absolute; top: -5px; right: -5px; background: #ff4e4e; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; display: none; }
@@ -47,71 +35,66 @@
     }
     .noti-item { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; transition: 0.2s; }
     .noti-item:hover { background: rgba(255,255,255,0.05); }
+    .noti-item.unread { border-left: 3px solid var(--accent); background: rgba(107, 92, 255, 0.05); }
 
-    .container{display:flex;gap:24px;padding:20px;max-width:1400px;margin:0 auto}
-    .player-column{flex:2.5;min-width:0}
+    .container{display:flex;gap:20px;padding:18px;max-width:1300px;margin:0 auto}
+    .player-column{flex:2;min-width:0}
+    .side-column{flex:1;max-width:360px}
     
-    /* Красивые рекомендации */
-    .side-column{
-        flex: 1;
-        max-width: 420px;
-    }
-    #recommendedList {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
+    video{width:100%;border-radius:12px;background:black; aspect-ratio: 16/9; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
+    .title{margin-top:12px;font-size:22px;font-weight:700}
 
-    video{width:100%;border-radius:16px;background:black; aspect-ratio: 16/9; outline: none; box-shadow: 0 20px 50px rgba(0,0,0,0.6);}
-    .title{margin-top:16px;font-size:24px;font-weight:700}
-
-    .video-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    .video-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.05)}
     .channel-left{display:flex;gap:12px;align-items:center;min-width:0; cursor: pointer;}
     
-    /* Аватарка как в index.html */
-    .avatar {
-      width: 48px; height: 48px; border-radius: 50%;
-      background: linear-gradient(135deg, #6b5cff, #8b5cf6);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 18px; color: #fff;
-      flex-shrink: 0; border: 2px solid rgba(255,255,255,0.1);
-      background-size: cover; background-position: center;
+    .avatar{
+        width:48px; height:48px; border-radius:50%; 
+        background:linear-gradient(135deg,#8b5cf6,#5143ff); 
+        flex-shrink:0; display: flex; align-items: center; justify-content: center; 
+        font-weight: bold; font-size: 20px; 
+        background-size: cover; background-position: center;
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
     .channel-info{min-width:0}
-    .channel-info .name{font-weight:700;font-size:16px; color: #8e82ff;}
+    .channel-info .name{font-weight:700;font-size:16px;}
 
     .engage-row{display:flex;align-items:center;gap:12px}
     .like-bar{display:flex;align-items:center;background:rgba(255,255,255,0.07);padding:4px;border-radius:20px;border: 1px solid rgba(255,255,255,0.05);}
-    .like-btn, .dislike-btn{background:transparent;border:none;color:var(--text);cursor:pointer;padding:8px 16px;border-radius:18px;display:flex;align-items:center;gap:8px;transition: 0.2s;}
+    .like-btn, .dislike-btn{background:transparent;border:none;color:var(--text);cursor:pointer;padding:6px 14px;border-radius:18px;display:flex;align-items:center;gap:8px;transition: 0.2s;}
     .like-btn:hover, .dislike-btn:hover{background:rgba(255,255,255,0.1)}
-    .like-btn.active { color: #8b5cf6; background: rgba(139, 92, 246, 0.15); }
-    .dislike-btn.active { color: #ff4e4e; background: rgba(255, 78, 78, 0.15); }
+    .like-btn.active { color: #8b5cf6; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .dislike-btn.active { color: #ff4e4e; background: rgba(255, 78, 78, 0.2); border: 1px solid rgba(255, 78, 78, 0.3); }
 
-    .subscribe-btn{padding:10px 24px;border-radius:20px;border:none;background: #fff;color:#000;cursor:pointer;font-weight:700;transition:0.2s}
+    .subscribe-btn{padding:10px 20px;border-radius:20px;border:none;background:var(--text);color:#000;cursor:pointer;font-weight:700;transition:0.2s}
     .subscribe-btn.active{background:rgba(255,255,255,0.1);color:var(--text); border: 1px solid rgba(255,255,255,0.2);}
 
-    .desc{margin-top:14px;background:rgba(255,255,255,0.04);padding:16px;border-radius:12px;font-size:14px;line-height:1.6; white-space: pre-wrap; color: #ddd;}
+    .desc{margin-top:14px;background:rgba(255,255,255,0.04);padding:14px;border-radius:12px;font-size:14px;line-height:1.5; white-space: pre-wrap;}
     
-    .comments{margin-top:30px}
-    .comment-form textarea{width:100%;min-height:40px;padding:12px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;transition:0.3s;font-size:15px;}
-    .comment-form textarea:focus{border-bottom:2px solid #8b5cf6}
-    .send-btn{margin-top:12px;padding:10px 20px;border-radius:20px;border:none;background:var(--accent-solid);color:white;cursor:pointer;font-weight: 600; float:right; transition: 0.2s;}
+    .comments{margin-top:25px}
+    .comment-form textarea{width:100%;min-height:40px;padding:10px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;transition:0.3s}
+    .comment-form textarea:focus{border-bottom:2px solid var(--accent)}
+    .send-btn{margin-top:8px;padding:8px 16px;border-radius:18px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight: 600; float:right}
 
-    /* Карточки рекомендаций */
-    .side-card{display:flex;gap:12px;padding:8px;border-radius:14px;cursor:pointer;transition: 0.25s; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.03);}
-    .side-card:hover{transform: translateX(5px); background: rgba(255,255,255,0.12); border-color: var(--accent-solid);}
-    .side-thumb-wrapper{width:160px; height:90px; border-radius:10px; overflow: hidden; flex-shrink:0; background: #000;}
-    .side-thumb{width:100%;height:100%;object-fit:cover;}
+    .reply-btn { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: 600; }
+
+    .side-card{display:flex;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition: 0.2s; align-items: center;}
+    .side-card:hover{background:rgba(255,255,255,0.05)}
+    .side-thumb-wrapper{width:140px;height:80px;border-radius:8px;overflow: hidden; flex-shrink:0; background: #000;}
+    .side-thumb{width:100%;height:100%;object-fit:cover; transition: transform 0.3s ease;}
+    .side-card:hover .side-thumb { transform: scale(1.05); }
     
-    .side-info .title-small{font-weight:600;font-size:14px;line-height:1.3;margin-bottom:4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #fff;}
-    .side-info .meta-small{font-size:12px;color:var(--muted); margin-bottom: 2px;}
+    .side-info .title-small{font-weight:600;font-size:14px;line-height:1.2;margin-bottom:4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;}
+    .side-info .meta-small{font-size:12px;color:var(--muted)}
 
-    @media (max-width: 1000px) {
-      .container { flex-direction: column; padding: 12px; }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; padding: 10px; }
       .side-column { max-width: 100%; }
       .player-column { width: 100%; }
+      .video-meta { flex-direction: column; align-items: flex-start; gap: 15px; }
       .engage-row { width: 100%; justify-content: space-between; }
+      .title { font-size: 18px; }
+      .side-thumb-wrapper { width: 120px; height: 70px; }
     }
   </style>
 </head>
@@ -120,7 +103,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <button class="back-btn" onclick="goBack()">← Назад</button>
-    <div class="logo" onclick="location.href='index.html'">Video<span>Hub</span></div>
+    <b style="font-size:20px; cursor:pointer;" onclick="location.href='index.html'">Video<span>Hub</span></b>
   </div>
   
   <div class="noti-wrapper">
@@ -165,12 +148,12 @@
         <textarea id="commentInput" placeholder="Оставьте комментарий..."></textarea>
         <button class="send-btn">Отправить</button>
       </div>
-      <div id="commentsList" style="margin-top:60px; clear: both;"></div>
+      <div id="commentsList" style="margin-top:40px;"></div>
     </div>
   </div>
 
   <aside class="side-column">
-    <h4 style="margin-top:0; margin-bottom:16px; font-size:18px; color: #8e82ff;">Рекомендуем</h4>
+    <h4 style="margin-top:0;">Рекомендуем</h4>
     <div id="recommendedList"></div>
   </aside>
 </div>
@@ -206,31 +189,32 @@ function goBack() {
     location.href = 'index.html';
 }
 
+// Уведомления
 async function loadNoti() {
     if(!currentUser) return;
-    try {
-        const res = await fetch(`${API_URL}/notifications/${currentUser}`);
-        const notes = await res.json();
-        const badge = document.getElementById('notiCount');
-        const list = document.getElementById('notiList');
-        const unread = notes.filter(n => !n.read).length;
-        if(unread > 0) {
-            badge.innerText = unread;
-            badge.style.display = 'block';
-        } else badge.style.display = 'none';
+    const res = await fetch(`${API_URL}/notifications/${currentUser}`);
+    const notes = await res.json();
+    const badge = document.getElementById('notiCount');
+    const list = document.getElementById('notiList');
+    
+    const unread = notes.filter(n => !n.read).length;
+    if(unread > 0) {
+        badge.innerText = unread;
+        badge.style.display = 'block';
+    } else badge.style.display = 'none';
 
-        list.innerHTML = notes.map(n => `
-            <div class="noti-item" onclick="location.href='watch.html?v=${n.video_id || ''}'">
-                <b>@${n.from_user}</b> ${n.text}
-            </div>
-        `).join('') || '<div class="noti-item">Уведомлений нет</div>';
-    } catch(e) {}
+    list.innerHTML = notes.map(n => `
+        <div class="noti-item ${n.read ? '' : 'unread'}" onclick="location.href='watch.html?v=${n.video_id || ''}'">
+            <b>@${n.from_user}</b> ${n.text}
+        </div>
+    `).join('') || '<div class="noti-item">Уведомлений нет</div>';
 }
 
 async function toggleNoti() {
     const list = document.getElementById('notiList');
     const isVisible = list.style.display === 'block';
     list.style.display = isVisible ? 'none' : 'block';
+    
     if(!isVisible && currentUser) {
         await fetch(`${API_URL}/notifications/read`, {
             method: 'POST',
@@ -267,23 +251,20 @@ async function initWatchPage() {
         document.getElementById('descText').innerText = video.description || "Нет описания";
         document.getElementById('videoStats').innerText = `${video.views || 0} просмотров • ${formatDate(video.created_at)}`;
 
-        // Загрузка аватарки автора
-        const avatarDiv = document.getElementById('authorAvatar');
         try {
             const profileRes = await fetch(`${API_URL}/user-profile/${authorName}`);
             if (profileRes.ok) {
                 const profile = await profileRes.json();
+                const avatarDiv = document.getElementById('authorAvatar');
                 if (profile && profile.avatarUrl) {
                     avatarDiv.innerText = '';
                     avatarDiv.style.backgroundImage = `url("${profile.avatarUrl}")`;
                 } else {
                     avatarDiv.innerText = authorName[0].toUpperCase();
                 }
-            } else {
-                avatarDiv.innerText = authorName[0].toUpperCase();
             }
         } catch (e) {
-            avatarDiv.innerText = authorName[0].toUpperCase();
+            document.getElementById('authorAvatar').innerText = authorName[0].toUpperCase();
         }
 
         document.getElementById('authorName').innerText = "@" + authorName;
@@ -308,7 +289,7 @@ async function initWatchPage() {
         renderRecommended(allVideos, video._id);
         loadComments();
         
-    } catch (err) { console.error("Ошибка:", err); }
+    } catch (err) { console.error("Ошибка инициализации:", err); }
 }
 
 async function loadLikesStatus() {
@@ -377,13 +358,13 @@ document.getElementById('subBtn').onclick = async function() {
 
 function renderRecommended(videos, currentId) {
     const list = document.getElementById('recommendedList');
-    const recs = videos.filter(v => v._id != currentId).slice(0, 15);
+    const recs = videos.filter(v => v._id != currentId).slice(0, 10);
     list.innerHTML = recs.map(v => {
         const thumbSrc = v.thumbnail_url ? v.thumbnail_url : `${v.url}#t=0.1`;
         return `
         <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
             <div class="side-thumb-wrapper">
-                <img src="${thumbSrc}" class="side-thumb">
+                <img src="${thumbSrc}" class="side-thumb" onerror="this.style.display='none'">
             </div>
             <div class="side-info">
                 <div class="title-small">${v.title}</div>
@@ -399,16 +380,16 @@ async function loadComments() {
     const comments = await res.json();
     const list = document.getElementById('commentsList');
     if (comments.length === 0) {
-        list.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">Пока нет комментариев.</p>';
+        list.innerHTML = '<p style="color: #888;">Нет комментариев.</p>';
         return;
     }
     list.innerHTML = comments.map(c => `
-        <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                <b style="color: #8b5cf6; cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
+        <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                <b style="color: var(--accent); cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
                 <small style="color: #666;">${formatDate(c.created_at)}</small>
             </div>
-            <div style="font-size: 14px; color: #ddd; line-height: 1.4;">${c.comment_text}</div>
+            <div style="font-size: 14px; color: #ddd;">${c.comment_text}</div>
             <button class="reply-btn" onclick="replyTo('${c.user_name}')">Ответить</button>
         </div>
     `).join('');
@@ -423,9 +404,11 @@ function replyTo(username) {
 document.querySelector('.send-btn').onclick = async function() {
     const input = document.getElementById('commentInput');
     const text = input.value;
+    
     if (!currentUser) return alert("Войдите!");
     if (!text.trim()) return;
 
+    // 1. Отправляем комментарий
     const res = await fetch(`${API_URL}/videos/${videoId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -433,6 +416,34 @@ document.querySelector('.send-btn').onclick = async function() {
     });
 
     if (res.ok) {
+        // 2. Логика уведомлений обоим участникам
+        const videoAuthor = currentVideoData ? currentVideoData.author_name : null;
+        const replyMatch = text.match(/^@([^, ]+)/);
+        const mentionedUser = replyMatch ? replyMatch[1].replace(/[,:]/g, '') : null;
+
+        // Собираем уникальный список получателей (без самого себя)
+        let targets = new Set();
+        if (videoAuthor && videoAuthor !== currentUser) targets.add(videoAuthor);
+        if (mentionedUser && mentionedUser !== currentUser) targets.add(mentionedUser);
+
+        // Отправляем запросы в цикле
+        for (let target of targets) {
+            let notiText = (target === mentionedUser) 
+                ? `ответил(а) на ваш комментарий` 
+                : `оставил(а) комментарий под вашим видео`;
+
+            await fetch(`${API_URL}/notifications/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to_user: target,
+                    from_user: currentUser,
+                    text: notiText,
+                    video_id: videoId
+                })
+            });
+        }
+
         input.value = '';
         loadComments();
     }
