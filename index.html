@@ -130,34 +130,39 @@
     .notif-item b { color: var(--accent); }
     .notif-empty { padding: 20px; text-align: center; color: #666; font-size: 12px; }
 
-    /* --- МИНИ-ПЛЕЕР --- */
+    /* --- МИНИ-ПЛЕЕР (ОБНОВЛЕННЫЙ) --- */
     #miniPlayer {
-      position: fixed; bottom: 20px; right: 20px; width: 320px;
-      background: #1a1a24; border: 1px solid var(--accent);
-      border-radius: 12px; overflow: hidden; z-index: 1000;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: none;
+      position: fixed; bottom: 20px; right: 20px; width: 300px;
+      background: rgba(26, 26, 36, 0.9); border: 1px solid var(--accent);
+      border-radius: 16px; overflow: hidden; z-index: 1000;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.8); display: none;
+      backdrop-filter: blur(10px); cursor: pointer;
+      transition: transform 0.3s ease;
     }
+    #miniPlayer:hover { transform: translateY(-5px); }
+    
     .mini-video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
-    #miniVideo { width: 100%; height: 100%; display: block; }
+    #miniVideo { width: 100%; height: 100%; display: block; pointer-events: none; }
     
     .mini-controls {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4); display: flex; align-items: center;
-      justify-content: center; gap: 20px; opacity: 0; transition: 0.3s; z-index: 2;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center;
+      justify-content: center; gap: 15px; opacity: 0; transition: 0.3s; z-index: 2;
     }
     .mini-video-container:hover .mini-controls { opacity: 1; }
     
     .ctrl-btn {
       background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 50%; width: 40px; height: 40px;
+      color: white; border-radius: 50%; width: 36px; height: 36px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 18px; transition: 0.2s; backdrop-filter: blur(4px);
+      font-size: 16px; transition: 0.2s; backdrop-filter: blur(4px);
     }
     .ctrl-btn:hover { background: var(--accent); transform: scale(1.1); }
 
-    .mini-info { padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .mini-info span { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-    .mini-close { background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 22px; line-height: 1; padding: 0 5px; }
+    .mini-info { padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .mini-info span { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; color: #eee; }
+    .mini-close { background: rgba(255,107,107,0.1); border: none; color: #ff6b6b; cursor: pointer; font-size: 18px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .mini-close:hover { background: #ff6b6b; color: white; }
   </style>
 </head>
 <body>
@@ -201,9 +206,9 @@
 
   <main id="videoList" class="videos"></main>
 
-  <div id="miniPlayer">
+  <div id="miniPlayer" onclick="goToVideo()">
       <div class="mini-video-container">
-          <video id="miniVideo" autoplay loop></video>
+          <video id="miniVideo" autoplay loop muted></video>
           <div class="mini-controls">
               <button class="ctrl-btn" onclick="prevVideo(event)" title="Назад">◀</button>
               <button class="ctrl-btn" id="miniPauseBtn" onclick="togglePause(event)" title="Пауза/Пуск">⏸</button>
@@ -211,8 +216,8 @@
           </div>
       </div>
       <div class="mini-info">
-          <span id="miniTitle" onclick="goToVideo()" style="cursor:pointer">Название видео</span>
-          <button class="mini-close" onclick="closeMiniPlayer()">×</button>
+          <span id="miniTitle">Название видео</span>
+          <button class="mini-close" onclick="closeMiniPlayer(event)">×</button>
       </div>
   </div>
 
@@ -268,7 +273,6 @@
         const isVisible = menu.style.display === 'block';
         menu.style.display = isVisible ? 'none' : 'block';
         if (!isVisible) {
-            // Помечаем как прочитанные при открытии
             const user = localStorage.getItem('currentUser');
             fetch(`${API_URL}/notifications/read`, {
                 method: 'POST',
@@ -399,7 +403,7 @@
             mini.style.display = 'block';
             t.innerText = videoData.title;
             v.src = videoData.url;
-            v.currentTime = videoData.time;
+            v.currentTime = videoData.time || 0;
             v.play().catch(() => {
                 document.getElementById('miniPauseBtn').innerText = '▶';
             });
@@ -441,7 +445,6 @@
         if (nextIndex < 0) nextIndex = allVideosData.length - 1;
         
         const nextVid = allVideosData[nextIndex];
-        
         const newData = { id: nextVid._id, title: nextVid.title, url: nextVid.url, time: 0 };
         localStorage.setItem('lastWatched', JSON.stringify(newData));
         
@@ -456,11 +459,16 @@
         const data = localStorage.getItem('lastWatched');
         if (data) {
             const video = JSON.parse(data);
+            const v = document.getElementById('miniVideo');
+            // Сохраняем текущее время перед переходом
+            video.time = v.currentTime;
+            localStorage.setItem('lastWatched', JSON.stringify(video));
             location.href = `watch.html?v=${video.id}`;
         }
     }
 
-    function closeMiniPlayer() {
+    function closeMiniPlayer(e) {
+        e.stopPropagation();
         localStorage.removeItem('lastWatched');
         document.getElementById('miniPlayer').style.display = 'none';
         document.getElementById('miniVideo').pause();
@@ -493,7 +501,7 @@
           <button class="upload-btn" onclick="location.href='upload.html'">⬆ Загрузить</button>
         `;
         loadNotifications();
-        setInterval(loadNotifications, 30000); // Обновлять каждые 30 сек
+        setInterval(loadNotifications, 30000);
       }
     }
 
@@ -519,7 +527,6 @@
         if(menu) menu.style.display = (menu.style.display === "block") ? "none" : "block";
     }
 
-    // Закрытие меню при клике вне
     window.onclick = function(event) {
         if (!event.target.closest('.user-profile')) {
             const d = document.getElementById("userDropdown");
