@@ -1,278 +1,160 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добавление контента — VideoHub</title>
-    <style>
-        :root {
-            --accent: #8b5cf6;
-            --accent-glow: rgba(139, 92, 246, 0.4);
-            --bg: #11111a;
-            --card: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.08);
-            --input-bg: rgba(0, 0, 0, 0.25);
-        }
+  <meta charset="utf-8" />
+  <title>Changelog — WebDragons</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --bg1: #11111a;
+      --accent: #6b5cff;
+      --text: #fff;
+      --card-bg: rgba(255,255,255,0.06);
+      --glass: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.12);
+      --voice-cyan: #6a00ff; 
+      --success: #00ff88;
+      --danger: #ff4e4e;
+    }
 
-        body { 
-            background: linear-gradient(135deg, #0f0f1a 0%, #1b1630 100%);
-            color: white; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden;
-        }
+    html, body {
+      height: 100%; margin: 0; font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
+      color: var(--text); overflow-x: hidden;
+    }
 
-        body::before {
-            content: ""; position: absolute; width: 300px; height: 300px;
-            background: var(--accent); filter: blur(150px);
-            top: -100px; right: -50px; opacity: 0.15; z-index: -1;
-        }
+    /* Фирменное свечение WebDragons */
+    .bg-glow { 
+      position: fixed; right: -150px; top: -100px; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(107, 92, 255, 0.15) 0%, transparent 60%);
+      filter: blur(100px); z-index: 0; pointer-events: none; 
+    }
 
-        .upload-card { 
-            background: var(--card); 
-            padding: 40px; 
-            border-radius: 28px; 
-            width: 100%;
-            max-width: 480px; 
-            border: 1px solid var(--border);
-            backdrop-filter: blur(25px);
-            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-            animation: fadeIn 0.6s ease-out;
-        }
+    .topbar {
+      position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between;
+      padding: 15px 25px; background: var(--glass); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(15px);
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    .logo { font-weight: 800; font-size: 24px; text-decoration: none; color: #fff; letter-spacing: -1px; }
+    .logo span { color: var(--accent); }
 
-        .logo-mini {
-            text-align: center; margin-bottom: 10px; font-size: 22px; font-weight: 800;
-            background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .logo-mini span { color: #8b5cf6; -webkit-text-fill-color: #8b5cf6; }
+    .container {
+      max-width: 850px; margin: 50px auto; padding: 0 20px; position: relative; z-index: 5;
+    }
 
-        h2 { margin-bottom: 30px; font-size: 24px; font-weight: 700; text-align: center; letter-spacing: -0.5px; }
+    .dev-header { text-align: center; margin-bottom: 60px; }
+    .dev-header h1 { font-size: 56px; margin: 0; font-weight: 900; letter-spacing: -2px; }
+    .dev-header p { color: rgba(255,255,255,0.5); font-size: 18px; margin-top: 10px; }
 
-        .drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: 18px;
-            padding: 30px 20px;
-            text-align: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            margin-bottom: 20px;
-            background: rgba(255,255,255,0.01);
-            position: relative;
-            overflow: hidden;
-        }
-        .drop-zone:hover, .drop-zone.drag-over {
-            border-color: var(--accent);
-            background: rgba(139, 92, 246, 0.06);
-            transform: scale(1.01);
-        }
-        .drop-zone p { margin: 8px 0 0; font-size: 14px; opacity: 0.7; font-weight: 500; }
-        .drop-zone .icon { font-size: 34px; display: block; filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3)); transition: 0.3s; }
-        .drop-zone:hover .icon { transform: translateY(-5px); }
+    .update-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px;
+      padding: 35px; margin-bottom: 30px; backdrop-filter: blur(10px); 
+      transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
 
-        .file-info { font-size: 13px; color: #a78bfa; margin-top: 10px; font-weight: 600; display: none; }
+    .update-card:hover {
+      border-color: var(--accent); background: rgba(255,255,255,0.08); transform: scale(1.01);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
 
-        input[type="text"], textarea { 
-            width: 100%; padding: 16px; margin-bottom: 15px; 
-            border-radius: 14px; border: 1px solid var(--border); 
-            background: var(--input-bg); color: white; 
-            box-sizing: border-box; outline: none; transition: 0.3s;
-            font-size: 15px;
-        }
-        input:focus, textarea:focus { 
-            border-color: var(--accent); 
-            background: rgba(0,0,0,0.4);
-            box-shadow: 0 0 0 4px var(--accent-glow);
-        }
+    .version-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .v-tag { background: var(--accent); color: #fff; padding: 5px 15px; border-radius: 10px; font-weight: 700; font-size: 13px; box-shadow: 0 0 20px rgba(107, 92, 255, 0.3); }
+    .v-tag.latest { background: var(--success); color: #000; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+    .v-date { color: rgba(255,255,255,0.3); font-size: 14px; }
 
-        input[type="file"] { display: none; }
+    .update-card h2 { margin: 0 0 20px 0; font-size: 26px; font-weight: 700; }
 
-        button { 
-            width: 100%; padding: 16px; border-radius: 14px; border: none; 
-            background: linear-gradient(135deg, #6b5cff, #8b5cf6); 
-            color: white; font-weight: 700; cursor: pointer; 
-            margin-top: 10px; transition: 0.3s; font-size: 16px;
-            box-shadow: 0 10px 25px rgba(107, 92, 255, 0.2);
-        }
-        button:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 15px 35px rgba(107, 92, 255, 0.4);
-            filter: brightness(1.1);
-        }
-        button:active { transform: translateY(0); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .changes-list { list-style: none; padding: 0; margin: 0; }
+    .changes-list li { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 18px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+    .changes-list li i { margin-top: 4px; font-size: 16px; min-width: 20px; text-align: center; }
 
-        .progress-container {
-            width: 100%; background: rgba(255,255,255,0.05); 
-            height: 8px; border-radius: 10px; margin-top: 25px; display: none;
-            overflow: hidden; position: relative;
-        }
-        .progress-bar {
-            width: 0%; height: 100%; background: linear-gradient(90deg, #6b5cff, #8b5cf6);
-            box-shadow: 0 0 15px var(--accent); transition: width 0.4s ease;
-            position: relative;
-        }
-        .progress-bar::after {
-            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shine 1.5s infinite;
-        }
-        @keyframes shine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
+    .status-new { color: var(--success); }
+    .status-fix { color: var(--danger); }
+    .status-upd { color: #00d4ff; }
 
-        .back-link { 
-            display: block; text-align: center; margin-top: 25px; 
-            color: rgba(255,255,255,0.5); text-decoration: none; font-size: 14px; 
-            transition: 0.3s;
-        }
-        .back-link:hover { color: #a78bfa; }
+    .author-note {
+      margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);
+      font-style: italic; color: rgba(255,255,255,0.4); font-size: 13px; display: flex; align-items: center; gap: 8px;
+    }
+    .author-note b { color: var(--accent); font-style: normal; }
 
-        ::placeholder { color: rgba(255,255,255,0.3); }
-    </style>
+    .back-btn {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff;
+      padding: 10px 20px; border-radius: 14px; text-decoration: none; font-size: 14px; transition: 0.3s;
+    }
+    .back-btn:hover { background: var(--accent); box-shadow: 0 0 15px rgba(107, 92, 255, 0.4); }
+
+    footer { text-align: center; padding: 60px 0; color: rgba(255,255,255,0.2); font-size: 12px; letter-spacing: 1px; }
+  </style>
 </head>
 <body>
 
-<div class="upload-card">
-    <div class="logo-mini">Video<span>Hub</span></div>
-    <h2>Загрузка видео</h2>
-    
-    <div class="drop-zone" onclick="document.getElementById('videoFile').click()" id="videoDrop">
-        <span class="icon">📁</span>
-        <p id="videoLabel">Выберите видеофайл для загрузки</p>
-        <div class="file-info" id="videoName"></div>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <a href="index.html" class="logo">Video<span>Hub</span></a>
+    <a href="index.html" class="back-btn"><i class="fas fa-chevron-left"></i> На главную</a>
+  </header>
+
+  <div class="container">
+    <section class="dev-header">
+      <h1>История обновлений</h1>
+      <p>Как <b>WebDragons</b> совершенствуют экосистему VideoHub</p>
+    </section>
+
+    <div class="update-card">
+      <div class="version-info">
+        <span class="v-tag latest">v1.5.0 — LATEST</span>
+        <span class="v-date">Сегодня, 2026</span>
+      </div>
+      <h2>Система вещания и Автоматизация</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-satellite-dish status-new"></i> <b>Рассылка подписчикам:</b> Теперь при загрузке видео все ваши подписчики мгновенно получают уведомление.</li>
+        <li><i class="fas fa-bolt status-upd"></i> <b>Server-side Logic:</b> Переработан движок обработки запросов для ускорения публикации контента.</li>
+        <li><i class="fas fa-shield-alt status-upd"></i> <b>Безопасность:</b> Усилена проверка прав доступа при управлении видеоконтентом.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
-    <input type="file" id="videoFile" accept="video/*">
 
-    <div class="drop-zone" onclick="document.getElementById('thumbFile').click()" id="thumbDrop" style="padding: 20px;">
-        <span class="icon" style="font-size: 24px;">🖼</span>
-        <p id="thumbLabel" style="font-size: 13px;">Загрузить изображение обложки</p>
-        <div class="file-info" id="thumbName"></div>
+    <div class="update-card" style="opacity: 0.9;">
+      <div class="version-info">
+        <span class="v-tag">v1.4.2</span>
+        <span class="v-date">20 Марта, 2026</span>
+      </div>
+      <h2>Умные пуши и @упоминания</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-bell status-new"></i> <b>Центр уведомлений:</b> Появилась возможность отслеживать активность через интерактивный список.</li>
+        <li><i class="fas fa-at status-new"></i> <b>Тегирование:</b> Реализована логика распознавания @никнеймов в комментариях.</li>
+        <li><i class="fas fa-bug status-fix"></i> <b>Стабильность:</b> Исправлена редкая ошибка воспроизведения в мини-плеере.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
-    <input type="file" id="thumbFile" accept="image/*">
 
-    <input type="text" id="title" placeholder="Введите название видео">
-    <textarea id="desc" placeholder="Введите описание видеоролика" rows="3"></textarea>
-
-    <button id="uploadBtn">Опубликовать</button>
-
-    <div class="progress-container" id="progressCont">
-        <div class="progress-bar" id="progressBar"></div>
+    <div class="update-card" style="opacity: 0.8;">
+      <div class="version-info">
+        <span class="v-tag" style="background: #444; box-shadow: none;">v1.3.0</span>
+        <span class="v-date">10 Марта, 2026</span>
+      </div>
+      <h2>Голосовой движок и Хранилище</h2>
+      <ul class="changes-list">
+        <li><i class="fas fa-microphone-alt status-new"></i> <b>Voice Intelligence:</b> Полностью интегрирован поиск видео по голосу.</li>
+        <li><i class="fas fa-server status-upd"></i> <b>Core:</b> Масштабная миграция базы данных на высокоскоростные кластеры.</li>
+        <li><i class="fas fa-tachometer-alt status-upd"></i> <b>Performance:</b> Оптимизация рендеринга карточек видео на главной.</li>
+      </ul>
+      <div class="author-note">
+        <i class="fas fa-dragon"></i> Отправлено разработчиками: <b>WebDragons</b>
+      </div>
     </div>
-    
-    <p id="status" style="text-align:center; font-size:14px; margin-top:15px; color: rgba(255,255,255,0.6);"></p>
-    
-    <a href="index.html" class="back-link">← Вернуться на главную</a>
-</div>
 
-<script>
-    const API_URL = "https://videohub-c48i.onrender.com";
-    const videoInput = document.getElementById('videoFile');
-    const thumbInput = document.getElementById('thumbFile');
-    const uploadBtn = document.getElementById('uploadBtn');
-
-    function handleFileSelect(input, labelId, infoId) {
-        const file = input.files[0];
-        if (file) {
-            document.getElementById(labelId).innerText = "Файл успешно выбран";
-            document.getElementById(infoId).style.display = "block";
-            document.getElementById(infoId).innerText = file.name;
-        }
-    }
-
-    videoInput.onchange = () => handleFileSelect(videoInput, 'videoLabel', 'videoName');
-    thumbInput.onchange = () => handleFileSelect(thumbInput, 'thumbLabel', 'thumbName');
-
-    [ {id:'videoDrop', input:'videoFile'}, {id:'thumbDrop', input:'thumbFile'} ].forEach(item => {
-        const zone = document.getElementById(item.id);
-        zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('drag-over'); };
-        zone.ondragleave = () => zone.classList.remove('drag-over');
-        zone.ondrop = (e) => {
-            e.preventDefault();
-            zone.classList.remove('drag-over');
-            const files = e.dataTransfer.files;
-            if (files.length) {
-                document.getElementById(item.input).files = files;
-                handleFileSelect(document.getElementById(item.input), item.input === 'videoFile' ? 'videoLabel' : 'thumbLabel', item.input === 'videoFile' ? 'videoName' : 'thumbName');
-            }
-        };
-    });
-
-    uploadBtn.onclick = async () => {
-        const video = videoInput.files[0];
-        const thumb = thumbInput.files[0];
-        const title = document.getElementById('title').value.trim();
-        const desc = document.getElementById('desc').value.trim();
-        const user = localStorage.getItem('currentUser');
-
-        if (!video || !title) {
-            alert("Ошибка: Укажите название и выберите видеофайл.");
-            return;
-        }
-
-        if (!user) {
-            alert("Ошибка авторизации. Пожалуйста, войдите в систему.");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('video', video);
-        if(thumb) formData.append('thumbnail', thumb);
-        formData.append('title', title);
-        formData.append('description', desc);
-        formData.append('username', user);
-
-        uploadBtn.disabled = true;
-        uploadBtn.innerText = "Инициализация...";
-        document.getElementById('progressCont').style.display = "block";
-        const pBar = document.getElementById('progressBar');
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API_URL}/upload`, true);
-
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                uploadBtn.innerText = "Загрузка данных...";
-                const percent = (e.loaded / e.total) * 100;
-                pBar.style.width = percent + '%';
-            }
-        };
-
-        xhr.onload = function() {
-            if (xhr.status === 200 || xhr.status === 201) {
-                uploadBtn.innerText = "Завершено";
-                setTimeout(() => { location.href = 'index.html'; }, 1000);
-            } else {
-                alert("Ошибка выполнения операции: " + xhr.responseText);
-                resetBtn();
-            }
-        };
-
-        xhr.onerror = () => {
-            alert("Ошибка сети. Проверьте подключение к серверу.");
-            resetBtn();
-        };
-
-        xhr.send(formData);
-    };
-
-    function resetBtn() {
-        uploadBtn.disabled = false;
-        uploadBtn.innerText = "Опубликовать";
-        document.getElementById('progressCont').style.display = "none";
-        document.getElementById('progressBar').style.width = "0%";
-    }
-</script>
+    <footer>
+      MADE BY WEBDRAGONS &copy; 2026 | VIDEOHUB ECOSYSTEM
+    </footer>
+  </div>
 
 </body>
 </html>
