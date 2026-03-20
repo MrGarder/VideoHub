@@ -16,6 +16,47 @@
       --voice-glow: rgba(255, 0, 217, 0.4);
       --danger: #ff4e4e;
     }
+
+    /* --- СТИЛИ ПРЕЛОАДЕРА (НОВОЕ) --- */
+    #preloader {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 10000; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .loader-content { text-align: center; }
+    .loader-logo { 
+      font-size: 60px; margin-bottom: 20px; 
+      filter: drop-shadow(0 0 20px var(--accent));
+      animation: dragonPulse 2s infinite ease-in-out;
+    }
+    .loader-text {
+      font-size: 28px; font-weight: 800; color: #fff;
+      letter-spacing: -1px; margin-bottom: 25px;
+    }
+    .loader-text span { color: var(--accent); }
+    .loader-track {
+      width: 220px; height: 3px; background: rgba(255,255,255,0.05);
+      border-radius: 10px; overflow: hidden; margin: 0 auto;
+    }
+    .loader-bar {
+      width: 0%; height: 100%; background: var(--accent);
+      box-shadow: 0 0 15px var(--accent);
+      animation: loadAnim 2.5s infinite ease-in-out;
+    }
+    @keyframes dragonPulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 30px var(--accent)); }
+    }
+    @keyframes loadAnim {
+      0% { width: 0%; margin-left: 0%; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+    /* ------------------------------ */
+
     html,body{
       height:100%; margin:0; font-family: Inter, Arial, sans-serif;
       background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
@@ -136,7 +177,7 @@
       box-shadow: 0 15px 40px rgba(0,0,0,0.8); display: none;
       backdrop-filter: blur(10px); cursor: pointer;
       transition: transform 0.3s ease;
-      touch-action: none; /* Важно для мобилок! */
+      touch-action: none;
     }
     #miniPlayer:hover { transform: translateY(-5px); }
     
@@ -165,6 +206,16 @@
   </style>
 </head>
 <body>
+
+  <div id="preloader">
+    <div class="loader-content">
+      <div class="loader-logo">🐲</div>
+      <div class="loader-text">Video<span>Hub</span></div>
+      <div class="loader-track">
+        <div class="loader-bar"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="bg-glow"></div>
 
@@ -226,6 +277,15 @@
     const sidebar = document.getElementById("sidebar");
     const menuBtn = document.getElementById("menuBtn");
     menuBtn.onclick = () => sidebar.classList.toggle("open");
+
+    // СКРИПТ УДАЛЕНИЯ ПРЕЛОАДЕРА
+    window.addEventListener('load', () => {
+        const preloader = document.getElementById('preloader');
+        setTimeout(() => {
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.remove(); }, 600);
+        }, 1500); // Показываем 1.5 сек для красоты стиля
+    });
 
     function filterVideos() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -444,7 +504,6 @@
         document.getElementById('miniVideo').pause();
     }
 
-    // --- ОБНОВЛЕННЫЙ DRAG & DROP (МЫШЬ + ТАЧ) ---
     const dragPlayer = document.getElementById('miniPlayer');
     const dragHandle = document.getElementById('miniDraggable');
     let isDragging = false;
