@@ -6,7 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
-const { OAuth2Client } = require('google-auth-library'); // Добавлено для Google
+const { OAuth2Client } = require('google-auth-library'); 
 require('dotenv').config();
 
 const app = express();
@@ -19,12 +19,9 @@ cloudinary.config({
   api_secret: 'TVzkbUKrfSFNT8TV6oKThhonSCg' 
 });
 
-// Настройки парсинга данных
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
-
-// --- РАЗДАЧА ФАЙЛОВ ---
 app.use(express.static(__dirname));
 
 const uploadDir = path.join(__dirname, 'uploads');
@@ -58,9 +55,9 @@ async function connectDB() {
 }
 connectDB();
 
-// --- Вспомогательная функция для уведомлений ---
+// --- Вспомогательная функция (внутренняя) ---
 async function createNotification(toUser, fromUser, text, videoId) {
-    if (toUser === fromUser) return; // Не уведомлять самого себя
+    if (!toUser || !fromUser || toUser === fromUser) return;
     try {
         await db.collection('notifications').insertOne({
             to_user: toUser,
@@ -80,8 +77,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage, limits: { fileSize: 100 * 1024 * 1024 } });
 const uploadFields = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
-
-// Мултер для картинок (аватарки/баннеры)
 const imgUpload = multer({ storage: storage });
 
 // --- МАРШРУТЫ: АВТОРИЗАЦИЯ ---
@@ -89,33 +84,19 @@ const imgUpload = multer({ storage: storage });
 app.post('/register', async (req, res) => {
     const { username, password, email } = req.body;
     const cleanUsername = username ? username.trim() : "";
-
-    if (!cleanUsername || cleanUsername.length < 3) {
-        return res.status(400).send('Никнейм слишком короткий');
-    }
-
+    if (!cleanUsername || cleanUsername.length < 3) return res.status(400).send('Никнейм слишком короткий');
     try {
         const existingUser = await db.collection('users').findOne({ 
             username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') } 
         });
-
-        if (existingUser) {
-            return res.status(400).send('Этот никнейм уже занят');
-        }
-
+        if (existingUser) return res.status(400).send('Этот никнейм уже занят');
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.collection('users').insertOne({
-            username: cleanUsername,
-            password: hashedPassword,
-            email,
-            avatar_url: '',
-            banner_url: '',
-            created_at: new Date()
+            username: cleanUsername, password: hashedPassword, email,
+            avatar_url: '', banner_url: '', created_at: new Date()
         });
         res.status(201).send('Пользователь создан');
-    } catch (err) { 
-        res.status(500).send(err.message); 
-    }
+    } catch (err) { res.status(500).send(err.message); }
 });
 
 app.post('/login', async (req, res) => {
@@ -127,11 +108,7 @@ app.post('/login', async (req, res) => {
         });
         if (user) {
             const isValid = await bcrypt.compare(password, user.password);
-            if (isValid) res.status(200).json({ 
-                username: user.username,
-                avatarUrl: user.avatar_url,
-                bannerUrl: user.banner_url
-            });
+            if (isValid) res.status(200).json({ username: user.username, avatarUrl: user.avatar_url, bannerUrl: user.banner_url });
             else res.status(401).send('Неверный пароль');
         } else res.status(404).send('Пользователь не найден');
     } catch (err) { res.status(500).send('Ошибка сервера'); }
@@ -149,53 +126,28 @@ app.post('/google-auth', async (req, res) => {
         const name = payload['given_name'];
         const picture = payload['picture'];
         const googleId = payload['sub'];
-
         let user = await db.collection('users').findOne({ email: email });
-
         if (!user) {
-            const newUser = {
-                username: name,
-                email: email,
-                avatar_url: picture,
-                googleId: googleId,
-                created_at: new Date()
-            };
+            const newUser = { username: name, email: email, avatar_url: picture, googleId: googleId, created_at: new Date() };
             await db.collection('users').insertOne(newUser);
             user = newUser;
         }
-
-        res.status(200).json({ 
-            username: user.username, 
-            avatarUrl: user.avatar_url 
-        });
-    } catch (error) {
-        res.status(401).send("Ошибка Google Auth");
-    }
+        res.status(200).json({ username: user.username, avatarUrl: user.avatar_url });
+    } catch (error) { res.status(401).send("Ошибка Google Auth"); }
 });
 
-// --- МАРШРУТЫ: ОБНОВЛЕНИЕ ПРОФИЛЯ ---
+// --- ОБНОВЛЕНИЕ ПРОФИЛЯ ---
 
 app.post('/update-profile', async (req, res) => {
     const { oldUsername, newUsername } = req.body;
     const cleanNewName = newUsername ? newUsername.trim() : "";
-
-    if (!cleanNewName || cleanNewName.length < 3) {
-        return res.status(400).send("Никнейм слишком короткий");
-    }
-
+    if (!cleanNewName || cleanNewName.length < 3) return res.status(400).send("Никнейм слишком короткий");
     try {
-        const userExists = await db.collection('users').findOne({ 
-            username: { $regex: new RegExp(`^${cleanNewName}$`, 'i') } 
-        });
-
-        if (userExists) {
-            return res.status(400).send("Этот никнейм уже занят");
-        }
-
+        const userExists = await db.collection('users').findOne({ username: { $regex: new RegExp(`^${cleanNewName}$`, 'i') } });
+        if (userExists) return res.status(400).send("Этот никнейм уже занят");
         await db.collection('users').updateOne({ username: oldUsername }, { $set: { username: cleanNewName } });
         await db.collection('videos').updateMany({ author_name: oldUsername }, { $set: { author_name: cleanNewName } });
         await db.collection('video_comments').updateMany({ user_name: oldUsername }, { $set: { user_name: cleanNewName } });
-
         res.json({ success: true, newUsername: cleanNewName });
     } catch (err) { res.status(500).send("Ошибка сервера: " + err.message); }
 });
@@ -205,18 +157,11 @@ app.post('/update-avatar', imgUpload.single('avatar'), async (req, res) => {
     if (!req.file) return res.status(400).send('Файл не выбран');
     try {
         const user = await db.collection('users').findOne({ username });
-        if (user.avatar_id) await cloudinary.uploader.destroy(user.avatar_id);
-
+        if (user && user.avatar_id) await cloudinary.uploader.destroy(user.avatar_id);
         const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "videohub/profiles",
-            quality: "auto",
-            transformation: [{ width: 200, height: 200, crop: "fill" }]
+            folder: "videohub/profiles", quality: "auto", transformation: [{ width: 200, height: 200, crop: "fill" }]
         });
-
-        await db.collection('users').updateOne({ username }, { 
-            $set: { avatar_url: result.secure_url, avatar_id: result.public_id } 
-        });
-
+        await db.collection('users').updateOne({ username }, { $set: { avatar_url: result.secure_url, avatar_id: result.public_id } });
         fs.unlinkSync(req.file.path);
         res.json({ success: true, avatarUrl: result.secure_url });
     } catch (err) { res.status(500).send(err.message); }
@@ -227,18 +172,11 @@ app.post('/update-banner', imgUpload.single('banner'), async (req, res) => {
     if (!req.file) return res.status(400).send('Файл не выбран');
     try {
         const user = await db.collection('users').findOne({ username });
-        if (user.banner_id) await cloudinary.uploader.destroy(user.banner_id);
-
+        if (user && user.banner_id) await cloudinary.uploader.destroy(user.banner_id);
         const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "videohub/banners",
-            quality: "auto",
-            transformation: [{ width: 1200, height: 400, crop: "fill" }]
+            folder: "videohub/banners", quality: "auto", transformation: [{ width: 1200, height: 400, crop: "fill" }]
         });
-
-        await db.collection('users').updateOne({ username }, { 
-            $set: { banner_url: result.secure_url, banner_id: result.public_id } 
-        });
-
+        await db.collection('users').updateOne({ username }, { $set: { banner_url: result.secure_url, banner_id: result.public_id } });
         fs.unlinkSync(req.file.path);
         res.json({ success: true, bannerUrl: result.secure_url });
     } catch (err) { res.status(500).send(err.message); }
@@ -252,50 +190,33 @@ app.get('/user-profile/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- МАРШРУТЫ: ВИДЕО ---
+// --- ВИДЕО ---
 
 app.post('/upload', uploadFields, async (req, res) => {
     try {
         const { title, description, username } = req.body;
         const files = req.files;
         if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
-
         const videoLocalPath = files.video[0].path;
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
-            resource_type: "video",
-            folder: "videohub/videos",
-            quality: "auto",
-            fetch_format: "auto"
+            resource_type: "video", folder: "videohub/videos", quality: "auto"
         });
-
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
-            const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, {
-                folder: "videohub/thumbs",
-                quality: "auto"
-            });
+            const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, { folder: "videohub/thumbs", quality: "auto" });
             finalThumbUrl = thumbResult.secure_url;
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
             finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
         }
-
         await db.collection('videos').insertOne({
-            title,
-            description: description || '',
-            url: videoResult.secure_url,
-            thumbnail_url: finalThumbUrl,
-            author_name: username,
-            cloudinary_id: videoResult.public_id,
-            views: 0,
-            created_at: new Date()
+            title, description: description || '', url: videoResult.secure_url,
+            thumbnail_url: finalThumbUrl, author_name: username, cloudinary_id: videoResult.public_id,
+            views: 0, created_at: new Date()
         });
-
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
         res.status(200).send('Опубликовано!');
-    } catch (err) { 
-        res.status(500).send("Ошибка загрузки: " + err.message); 
-    }
+    } catch (err) { res.status(500).send("Ошибка загрузки: " + err.message); }
 });
 
 app.get('/videos', async (req, res) => {
@@ -356,11 +277,8 @@ app.post('/videos/:id/like', async (req, res) => {
             res.json({ action: 'unliked' });
         } else {
             await db.collection('video_likes').insertOne({ user_name: username, video_id: videoId });
-            
-            // Уведомление автору видео
             const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
             if (video) await createNotification(video.author_name, username, "оценил(а) ваше видео", videoId);
-            
             res.json({ action: 'liked' });
         }
     } catch (err) { res.status(500).send(err.message); }
@@ -400,10 +318,7 @@ app.post('/subscribe', async (req, res) => {
             res.json({ status: 'unsubscribed' });
         } else {
             await db.collection('subscriptions').insertOne({ follower_name: follower, author_name: authorName });
-            
-            // Уведомление о подписке
             await createNotification(authorName, follower, "подписался(ась) на вас", null);
-
             res.json({ status: 'subscribed' });
         }
     } catch (err) { res.status(500).send(err.message); }
@@ -443,20 +358,21 @@ app.get('/videos/:id/comments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// ПРАВКА: Маршрут комментариев теперь просто сохраняет коммент.
+// Уведомление автору видео сервер отправит сам, а уведомление "ответ" отправит клиент.
 app.post('/videos/:id/comments', async (req, res) => {
     const { username, text } = req.body;
     const videoId = req.params.id;
     try {
         await db.collection('video_comments').insertOne({
-            video_id: videoId,
-            user_name: username,
-            comment_text: text,
-            created_at: new Date()
+            video_id: videoId, user_name: username, comment_text: text, created_at: new Date()
         });
-
-        // Уведомление автору видео
-        const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
-        if (video) await createNotification(video.author_name, username, `оставил(а) комментарий: "${text.substring(0, 20)}..."`, videoId);
+        
+        // Сервер уведомляет автора ТОЛЬКО если это не ответ (нет @ в начале)
+        if (!text.startsWith('@')) {
+            const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
+            if (video) await createNotification(video.author_name, username, `оставил(а) комментарий под видео`, videoId);
+        }
 
         res.status(201).send("Комментарий добавлен");
     } catch (err) { res.status(500).send(err.message); }
@@ -466,11 +382,7 @@ app.post('/videos/:id/comments', async (req, res) => {
 
 app.get('/notifications/:username', async (req, res) => {
     try {
-        const notes = await db.collection('notifications')
-            .find({ to_user: req.params.username })
-            .sort({ created_at: -1 })
-            .limit(20)
-            .toArray();
+        const notes = await db.collection('notifications').find({ to_user: req.params.username }).sort({ created_at: -1 }).limit(20).toArray();
         res.json(notes);
     } catch (err) { res.status(500).send(err.message); }
 });
@@ -478,11 +390,17 @@ app.get('/notifications/:username', async (req, res) => {
 app.post('/notifications/read', async (req, res) => {
     try {
         const { username } = req.body;
-        await db.collection('notifications').updateMany(
-            { to_user: username, read: false },
-            { $set: { read: true } }
-        );
+        await db.collection('notifications').updateMany({ to_user: username, read: false }, { $set: { read: true } });
         res.sendStatus(200);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// --- НОВЫЙ МАРШРУТ: Добавление уведомления вручную (нужно для watch.html) ---
+app.post('/notifications/add', async (req, res) => {
+    const { to_user, from_user, text, video_id } = req.body;
+    try {
+        await createNotification(to_user, from_user, text, video_id);
+        res.status(201).json({ success: true });
     } catch (err) { res.status(500).send(err.message); }
 });
 
@@ -497,9 +415,8 @@ app.get('/admin/users', async (req, res) => {
 
 app.delete('/admin/delete-user/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
-        await db.collection('users').deleteOne({ _id: new ObjectId(id) });
+        if (!ObjectId.isValid(req.params.id)) return res.status(400).send("Некорректный ID");
+        await db.collection('users').deleteOne({ _id: new ObjectId(req.params.id) });
         res.json({ success: true });
     } catch (err) { res.status(500).send(err.message); }
 });
@@ -508,22 +425,14 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { username } = req.query;
-
         if (!ObjectId.isValid(id)) return res.status(400).send("Некорректный ID");
         const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
-        if (!video) return res.status(404).json({ success: false, error: "Не найдено" });
-
-        if (username !== "MrGarder" && username !== video.author_name) {
-            return res.status(403).json({ success: false, error: "Нет прав!" });
-        }
-        
-        if (video.cloudinary_id) {
-            await cloudinary.uploader.destroy(video.cloudinary_id, { resource_type: 'video' });
-        }
-
+        if (!video) return res.status(404).json({ success: false });
+        if (username !== "MrGarder" && username !== video.author_name) return res.status(403).json({ success: false });
+        if (video.cloudinary_id) await cloudinary.uploader.destroy(video.cloudinary_id, { resource_type: 'video' });
         await db.collection('videos').deleteOne({ _id: new ObjectId(id) });
         res.status(200).json({ success: true });
-    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
 const PORT = process.env.PORT || 3000;
