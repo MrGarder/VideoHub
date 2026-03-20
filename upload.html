@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Загрузка видео — VideoHub</title>
+    <title>Добавление контента — VideoHub</title>
     <style>
         :root {
             --accent: #8b5cf6;
@@ -26,7 +26,6 @@
             overflow-x: hidden;
         }
 
-        /* Декоративные круги на фоне для уюта */
         body::before {
             content: ""; position: absolute; width: 300px; height: 300px;
             background: var(--accent); filter: blur(150px);
@@ -59,7 +58,6 @@
 
         h2 { margin-bottom: 30px; font-size: 24px; font-weight: 700; text-align: center; letter-spacing: -0.5px; }
 
-        /* Drag & Drop зоны */
         .drop-zone {
             border: 2px dashed var(--border);
             border-radius: 18px;
@@ -83,7 +81,6 @@
 
         .file-info { font-size: 13px; color: #a78bfa; margin-top: 10px; font-weight: 600; display: none; }
 
-        /* Поля ввода */
         input[type="text"], textarea { 
             width: 100%; padding: 16px; margin-bottom: 15px; 
             border-radius: 14px; border: 1px solid var(--border); 
@@ -114,7 +111,6 @@
         button:active { transform: translateY(0); }
         button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        /* Прогресс бар */
         .progress-container {
             width: 100%; background: rgba(255,255,255,0.05); 
             height: 8px; border-radius: 10px; margin-top: 25px; display: none;
@@ -125,7 +121,6 @@
             box-shadow: 0 0 15px var(--accent); transition: width 0.4s ease;
             position: relative;
         }
-        /* Блик на прогресс-баре */
         .progress-bar::after {
             content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
@@ -150,24 +145,24 @@
 
 <div class="upload-card">
     <div class="logo-mini">Video<span>Hub</span></div>
-    <h2>Создать видео</h2>
+    <h2>Загрузка видео</h2>
     
     <div class="drop-zone" onclick="document.getElementById('videoFile').click()" id="videoDrop">
-        <span class="icon">🚀</span>
-        <p id="videoLabel">Выберите видеофайл</p>
+        <span class="icon">📁</span>
+        <p id="videoLabel">Выберите видеофайл для загрузки</p>
         <div class="file-info" id="videoName"></div>
     </div>
     <input type="file" id="videoFile" accept="video/*">
 
     <div class="drop-zone" onclick="document.getElementById('thumbFile').click()" id="thumbDrop" style="padding: 20px;">
         <span class="icon" style="font-size: 24px;">🖼</span>
-        <p id="thumbLabel" style="font-size: 13px;">Добавить обложку (PNG, JPG)</p>
+        <p id="thumbLabel" style="font-size: 13px;">Загрузить изображение обложки</p>
         <div class="file-info" id="thumbName"></div>
     </div>
     <input type="file" id="thumbFile" accept="image/*">
 
-    <input type="text" id="title" placeholder="Придумайте название">
-    <textarea id="desc" placeholder="Расскажите о чем это видео..." rows="3"></textarea>
+    <input type="text" id="title" placeholder="Введите название видео">
+    <textarea id="desc" placeholder="Введите описание видеоролика" rows="3"></textarea>
 
     <button id="uploadBtn">Опубликовать</button>
 
@@ -177,7 +172,7 @@
     
     <p id="status" style="text-align:center; font-size:14px; margin-top:15px; color: rgba(255,255,255,0.6);"></p>
     
-    <a href="index.html" class="back-link">← Отмена</a>
+    <a href="index.html" class="back-link">← Вернуться на главную</a>
 </div>
 
 <script>
@@ -189,7 +184,7 @@
     function handleFileSelect(input, labelId, infoId) {
         const file = input.files[0];
         if (file) {
-            document.getElementById(labelId).innerText = "Готово к загрузке ✅";
+            document.getElementById(labelId).innerText = "Файл успешно выбран";
             document.getElementById(infoId).style.display = "block";
             document.getElementById(infoId).innerText = file.name;
         }
@@ -221,12 +216,12 @@
         const user = localStorage.getItem('currentUser');
 
         if (!video || !title) {
-            alert("Заполните название и выберите видео!");
+            alert("Ошибка: Укажите название и выберите видеофайл.");
             return;
         }
 
         if (!user) {
-            alert("Пожалуйста, войдите в аккаунт");
+            alert("Ошибка авторизации. Пожалуйста, войдите в систему.");
             return;
         }
 
@@ -238,7 +233,7 @@
         formData.append('username', user);
 
         uploadBtn.disabled = true;
-        uploadBtn.innerText = "Подготовка...";
+        uploadBtn.innerText = "Инициализация...";
         document.getElementById('progressCont').style.display = "block";
         const pBar = document.getElementById('progressBar');
 
@@ -247,7 +242,7 @@
 
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
-                uploadBtn.innerText = "Загружаем контент...";
+                uploadBtn.innerText = "Загрузка данных...";
                 const percent = (e.loaded / e.total) * 100;
                 pBar.style.width = percent + '%';
             }
@@ -255,16 +250,16 @@
 
         xhr.onload = function() {
             if (xhr.status === 200 || xhr.status === 201) {
-                uploadBtn.innerText = "Успешно!";
+                uploadBtn.innerText = "Завершено";
                 setTimeout(() => { location.href = 'index.html'; }, 1000);
             } else {
-                alert("Упс! Ошибка: " + xhr.responseText);
+                alert("Ошибка выполнения операции: " + xhr.responseText);
                 resetBtn();
             }
         };
 
         xhr.onerror = () => {
-            alert("Проблема с сетью. Попробуй еще раз!");
+            alert("Ошибка сети. Проверьте подключение к серверу.");
             resetBtn();
         };
 
