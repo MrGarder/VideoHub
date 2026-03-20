@@ -63,7 +63,7 @@
 
     .voice-btn.listening { 
         border-color: var(--voice-cyan); 
-        background: rgba(0, 242, 255, 0.1); 
+        background: rgba(0, 242, 255, 1); 
         box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
     }
     .voice-btn.listening .mic-icon { display: none; }
@@ -130,7 +130,7 @@
     .notif-item b { color: var(--accent); }
     .notif-empty { padding: 20px; text-align: center; color: #666; font-size: 12px; }
 
-    /* --- МИНИ-ПЛЕЕР (ОБНОВЛЕННЫЙ) --- */
+    /* --- МИНИ-ПЛЕЕР --- */
     #miniPlayer {
       position: fixed; bottom: 20px; right: 20px; width: 300px;
       background: rgba(26, 26, 36, 0.9); border: 1px solid var(--accent);
@@ -279,7 +279,8 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ username: user })
             }).then(() => {
-                document.getElementById('notifBadge').style.display = 'none';
+                const b = document.getElementById('notifBadge');
+                if(b) b.style.display = 'none';
             });
         }
     }
@@ -460,7 +461,6 @@
         if (data) {
             const video = JSON.parse(data);
             const v = document.getElementById('miniVideo');
-            // Сохраняем текущее время перед переходом
             video.time = v.currentTime;
             localStorage.setItem('lastWatched', JSON.stringify(video));
             location.href = `watch.html?v=${video.id}`;
@@ -474,7 +474,7 @@
         document.getElementById('miniVideo').pause();
     }
 
-    // --- ЛОГИКА DRAG & DROP ---
+    // --- DRAG & DROP ---
     const dragPlayer = document.getElementById('miniPlayer');
     const dragHandle = document.getElementById('miniDraggable');
     let isDragging = false;
@@ -507,7 +507,7 @@
         }
     });
 
-    // --- АВТОРИЗАЦИЯ И ИНТЕРФЕЙС ---
+    // --- АВТОРИЗАЦИЯ ---
     function checkAuth() {
       const username = localStorage.getItem('currentUser');
       const authSection = document.getElementById("authSection");
