@@ -15,7 +15,6 @@
     }
     html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background: linear-gradient(135deg,#11111a,#1b1630);color:var(--text);-webkit-font-smoothing:antialiased}
     
-    /* Логотип как в index.html */
     .logo {
       font-size: 24px;
       font-weight: 800;
@@ -37,7 +36,6 @@
     }
     .back-btn:hover { background: rgba(140,70,255,.3); }
 
-    /* Уведомления */
     .noti-wrapper { position: relative; cursor: pointer; }
     #notiBtn { background: none; border: none; font-size: 20px; color: var(--text); cursor: pointer; position: relative; }
     #notiCount { position: absolute; top: -5px; right: -5px; background: #ff4e4e; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; display: none; }
@@ -53,7 +51,6 @@
     .container{display:flex;gap:24px;padding:20px;max-width:1400px;margin:0 auto}
     .player-column{flex:2.5;min-width:0}
     
-    /* Стилизация блока рекомендаций */
     .side-column{
         flex: 1;
         max-width: 400px;
@@ -110,7 +107,8 @@
     .send-btn{margin-top:12px;padding:10px 20px;border-radius:20px;border:none;background:var(--accent-solid);color:white;cursor:pointer;font-weight: 600; float:right; transition: 0.2s;}
     .send-btn:hover { filter: brightness(1.2); }
 
-    .reply-btn { background: none; border: none; color: #8b5cf6; font-size: 12px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: 600; }
+    .reply-btn, .delete-btn { background: none; border: none; color: #8b5cf6; font-size: 12px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: 600; margin-right: 15px; }
+    .delete-btn { color: #ff4e4e; }
 
     .side-card{display:flex;gap:12px;padding:10px;border-radius:12px;cursor:pointer;transition: 0.2s; align-items: flex-start; margin-bottom: 4px;}
     .side-card:hover{background:rgba(255,255,255,0.06)}
@@ -419,7 +417,14 @@ async function loadComments() {
         list.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">Пока нет комментариев. Будьте первым!</p>';
         return;
     }
-    list.innerHTML = comments.map(c => `
+
+    const videoAuthor = currentVideoData ? currentVideoData.author_name : null;
+
+    list.innerHTML = comments.map(c => {
+        // Проверка прав на удаление
+        const canDelete = currentUser === c.user_name || currentUser === videoAuthor || currentUser === 'admin';
+        
+        return `
         <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <b style="color: #8b5cf6; cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
@@ -427,8 +432,29 @@ async function loadComments() {
             </div>
             <div style="font-size: 14px; color: #ddd; line-height: 1.4;">${c.comment_text}</div>
             <button class="reply-btn" onclick="replyTo('${c.user_name}')">Ответить</button>
+            ${canDelete ? `<button class="delete-btn" onclick="deleteComment('${c._id}')">Удалить</button>` : ''}
         </div>
-    `).join('');
+    `}).join('');
+}
+
+async function deleteComment(commentId) {
+    if (!confirm("Вы уверены, что хотите удалить этот комментарий?")) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/videos/${videoId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser })
+        });
+
+        if (res.ok) {
+            loadComments();
+        } else {
+            alert("Ошибка при удалении комментария");
+        }
+    } catch (e) {
+        console.error("Ошибка удаления:", e);
+    }
 }
 
 function replyTo(username) {
