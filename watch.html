@@ -402,16 +402,49 @@ function replyTo(username) {
 }
 
 document.querySelector('.send-btn').onclick = async function() {
-    const text = document.getElementById('commentInput').value;
+    const input = document.getElementById('commentInput');
+    const text = input.value;
+    
     if (!currentUser) return alert("Войдите!");
     if (!text.trim()) return;
+
+    // 1. Отправляем комментарий
     const res = await fetch(`${API_URL}/videos/${videoId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: currentUser, text: text })
     });
+
     if (res.ok) {
-        document.getElementById('commentInput').value = '';
+        // 2. Логика уведомлений обоим участникам
+        const videoAuthor = currentVideoData ? currentVideoData.author_name : null;
+        const replyMatch = text.match(/^@([^, ]+)/);
+        const mentionedUser = replyMatch ? replyMatch[1].replace(/[,:]/g, '') : null;
+
+        // Собираем уникальный список получателей (без самого себя)
+        let targets = new Set();
+        if (videoAuthor && videoAuthor !== currentUser) targets.add(videoAuthor);
+        if (mentionedUser && mentionedUser !== currentUser) targets.add(mentionedUser);
+
+        // Отправляем запросы в цикле
+        for (let target of targets) {
+            let notiText = (target === mentionedUser) 
+                ? `ответил(а) на ваш комментарий` 
+                : `оставил(а) комментарий под вашим видео`;
+
+            await fetch(`${API_URL}/notifications/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to_user: target,
+                    from_user: currentUser,
+                    text: notiText,
+                    video_id: videoId
+                })
+            });
+        }
+
+        input.value = '';
         loadComments();
     }
 };
