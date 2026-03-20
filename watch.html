@@ -421,8 +421,8 @@ async function loadComments() {
     const videoAuthor = currentVideoData ? currentVideoData.author_name : null;
 
     list.innerHTML = comments.map(c => {
-        // Проверка прав на удаление
-        const canDelete = currentUser === c.user_name || currentUser === videoAuthor || currentUser === 'admin';
+        // Проверка прав на удаление: автор коммента, автор видео или админ MrGarder
+        const canDelete = currentUser === c.user_name || currentUser === videoAuthor || currentUser === 'admin' || currentUser === 'MrGarder';
         
         return `
         <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
