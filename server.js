@@ -197,10 +197,20 @@ app.post('/upload', uploadFields, async (req, res) => {
         const { title, description, username } = req.body;
         const files = req.files;
         if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
+        
         const videoLocalPath = files.video[0].path;
-        const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
-            resource_type: "video", folder: "videohub/videos", quality: "auto"
+
+        // ИСПОЛЬЗУЕМ upload_large И АСИНХРОННУЮ ОБРАБОТКУ ДЛЯ БОЛЬШИХ ФАЙЛОВ
+        const videoResult = await cloudinary.uploader.upload_large(videoLocalPath, {
+            resource_type: "video", 
+            folder: "videohub/videos", 
+            quality: "auto",
+            eager: [
+                { format: 'mp4', transformation: [{ quality: "auto" }] }
+            ],
+            eager_async: true // Это решает проблему "Video is too large"
         });
+
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
             const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, { folder: "videohub/thumbs", quality: "auto" });
