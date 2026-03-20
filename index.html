@@ -141,7 +141,7 @@
     }
     #miniPlayer:hover { transform: translateY(-5px); }
     
-    .mini-video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
+    .mini-video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; cursor: move; }
     #miniVideo { width: 100%; height: 100%; display: block; pointer-events: none; }
     
     .mini-controls {
@@ -207,8 +207,8 @@
   <main id="videoList" class="videos"></main>
 
   <div id="miniPlayer" onclick="goToVideo()">
-      <div class="mini-video-container">
-          <video id="miniVideo" autoplay loop muted></video>
+      <div class="mini-video-container" id="miniDraggable">
+          <video id="miniVideo" autoplay loop></video>
           <div class="mini-controls">
               <button class="ctrl-btn" onclick="prevVideo(event)" title="Назад">◀</button>
               <button class="ctrl-btn" id="miniPauseBtn" onclick="togglePause(event)" title="Пауза/Пуск">⏸</button>
@@ -473,6 +473,39 @@
         document.getElementById('miniPlayer').style.display = 'none';
         document.getElementById('miniVideo').pause();
     }
+
+    // --- ЛОГИКА DRAG & DROP ---
+    const dragPlayer = document.getElementById('miniPlayer');
+    const dragHandle = document.getElementById('miniDraggable');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    dragHandle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = dragPlayer.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        dragPlayer.style.transition = 'none';
+        dragPlayer.style.bottom = 'auto';
+        dragPlayer.style.right = 'auto';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        dragPlayer.style.left = (initialLeft + dx) + 'px';
+        dragPlayer.style.top = (initialTop + dy) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            dragPlayer.style.transition = 'transform 0.3s ease';
+        }
+    });
 
     // --- АВТОРИЗАЦИЯ И ИНТЕРФЕЙС ---
     function checkAuth() {
