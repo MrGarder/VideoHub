@@ -209,11 +209,34 @@ app.post('/upload', uploadFields, async (req, res) => {
         } else {
             finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
         }
-        await db.collection('videos').insertOne({
+
+        // Сохраняем видео и получаем его ID для уведомлений
+        const insertResult = await db.collection('videos').insertOne({
             title, description: description || '', url: videoResult.secure_url,
             thumbnail_url: finalThumbUrl, author_name: username, cloudinary_id: videoResult.public_id,
             views: 0, created_at: new Date()
         });
+
+        const videoId = insertResult.insertedId.toString();
+
+        // --- РАССЫЛКА УВЕДОМЛЕНИЙ ПОДПИСЧИКАМ ---
+        try {
+            const subscribers = await db.collection('subscriptions').find({ author_name: username }).toArray();
+            if (subscribers.length > 0) {
+                const notifications = subscribers.map(sub => ({
+                    to_user: sub.follower_name,
+                    from_user: username,
+                    text: `опубликовал(а) новое видео: "${title}"`,
+                    video_id: videoId,
+                    read: false,
+                    created_at: new Date()
+                }));
+                await db.collection('notifications').insertMany(notifications);
+            }
+        } catch (errNote) {
+            console.error("Ошибка рассылки уведомлений:", errNote);
+        }
+
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
         res.status(200).send('Опубликовано!');
     } catch (err) { res.status(500).send("Ошибка загрузки: " + err.message); }
@@ -358,8 +381,6 @@ app.get('/videos/:id/comments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// ПРАВКА: Маршрут комментариев теперь просто сохраняет коммент.
-// Уведомление автору видео сервер отправит сам, а уведомление "ответ" отправит клиент.
 app.post('/videos/:id/comments', async (req, res) => {
     const { username, text } = req.body;
     const videoId = req.params.id;
@@ -368,7 +389,6 @@ app.post('/videos/:id/comments', async (req, res) => {
             video_id: videoId, user_name: username, comment_text: text, created_at: new Date()
         });
         
-        // Сервер уведомляет автора ТОЛЬКО если это не ответ (нет @ в начале)
         if (!text.startsWith('@')) {
             const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
             if (video) await createNotification(video.author_name, username, `оставил(а) комментарий под видео`, videoId);
@@ -395,7 +415,6 @@ app.post('/notifications/read', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- НОВЫЙ МАРШРУТ: Добавление уведомления вручную (нужно для watch.html) ---
 app.post('/notifications/add', async (req, res) => {
     const { to_user, from_user, text, video_id } = req.body;
     try {
