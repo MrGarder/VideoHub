@@ -19,8 +19,8 @@ cloudinary.config({
   api_secret: 'TVzkbUKrfSFNT8TV6oKThhonSCg' 
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 app.use(express.static(__dirname));
 
@@ -190,37 +190,37 @@ app.get('/user-profile/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ВИДЕО ---
+// --- ВИДЕО (ИСПРАВЛЕННЫЙ МАРШРУТ) ---
 
 app.post('/upload', uploadFields, async (req, res) => {
+    let videoLocalPath = "";
     try {
         const { title, description, username } = req.body;
         const files = req.files;
         if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
         
-        const videoLocalPath = files.video[0].path;
+        videoLocalPath = files.video[0].path;
 
-        // Загрузка большого файла
-        const videoResult = await cloudinary.uploader.upload_large(videoLocalPath, {
+        // Загрузка
+        const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video", 
             folder: "videohub/videos",
-            chunk_size: 6000000, // 6MB чанки
-            eager_async: true
+            use_filename: true,
+            unique_filename: true
         });
 
-        // ПРОВЕРКА: Если Cloudinary вернул ошибку или пустой результат
         if (!videoResult || !videoResult.secure_url) {
-            throw new Error("Cloudinary не вернул URL видео");
+            throw new Error("Cloudinary не вернул данные");
         }
 
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
-            const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, { folder: "videohub/thumbs", quality: "auto" });
+            const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, { folder: "videohub/thumbs" });
             finalThumbUrl = thumbResult.secure_url;
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
-            // Безопасное создание превью из видео URL
-            finalThumbUrl = videoResult.secure_url.split('.').slice(0, -1).join('.') + ".jpg";
+            // Самый надежный способ получить превью
+            finalThumbUrl = videoResult.secure_url.substring(0, videoResult.secure_url.lastIndexOf(".")) + ".jpg";
         }
 
         const insertResult = await db.collection('videos').insertOne({
@@ -229,9 +229,7 @@ app.post('/upload', uploadFields, async (req, res) => {
             views: 0, created_at: new Date()
         });
 
-        const videoId = insertResult.insertedId.toString();
-
-        // Рассылка уведомлений
+        // Уведомления
         try {
             const subscribers = await db.collection('subscriptions').find({ author_name: username }).toArray();
             if (subscribers.length > 0) {
@@ -239,21 +237,21 @@ app.post('/upload', uploadFields, async (req, res) => {
                     to_user: sub.follower_name,
                     from_user: username,
                     text: `опубликовал(а) новое видео: "${title}"`,
-                    video_id: videoId,
+                    video_id: insertResult.insertedId.toString(),
                     read: false,
                     created_at: new Date()
                 }));
                 await db.collection('notifications').insertMany(notifications);
             }
-        } catch (errNote) {
-            console.error("Ошибка уведомлений:", errNote);
-        }
+        } catch (e) {}
 
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
         res.status(200).send('Опубликовано!');
+
     } catch (err) { 
-        console.error("Детальная ошибка загрузки:", err);
-        res.status(500).send("Ошибка загрузки: " + err.message); 
+        if (videoLocalPath && fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
+        console.error("Ошибка:", err);
+        res.status(500).send("Ошибка: " + err.message); 
     }
 });
 
