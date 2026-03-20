@@ -28,14 +28,17 @@
     }
     .loader-content { text-align: center; }
     
-    /* Круглое место под фото */
+    /* Круглое место под твое фото */
     .loader-photo { 
-      width: 100px; height: 100px;
+      width: 120px; height: 120px;
       border-radius: 50%;
       margin-bottom: 20px;
       border: 3px solid var(--accent);
-      box-shadow: 0 0 20px var(--accent);
+      box-shadow: 0 0 25px var(--accent);
       object-fit: cover;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
       animation: photoPulse 2s infinite ease-in-out;
     }
     
@@ -216,7 +219,7 @@
 
   <div id="preloader">
     <div class="loader-content">
-      <img class="loader-photo" src="ССЫЛКА_НА_ТВОЕ_ФОТО" alt="Logo">
+      <img class="loader-photo" src="uploads/IMG_5231.PNG" alt="Logo">
       <div class="loader-text">Video<span>Hub</span></div>
       <div class="loader-track">
         <div class="loader-bar"></div>
@@ -285,14 +288,12 @@
     const menuBtn = document.getElementById("menuBtn");
     menuBtn.onclick = () => sidebar.classList.toggle("open");
 
-    // ИСПРАВЛЕННЫЙ СКРИПТ УДАЛЕНИЯ ПРЕЛОАДЕРА (УБИРАЕТ ПРИ ОБНОВЛЕНИИ)
+    // ЛОГИКА ПРЕЛОАДЕРА (СКРЫВАЕТ ПРИ ОБНОВЛЕНИИ)
     (function() {
         const preloader = document.getElementById('preloader');
         if (sessionStorage.getItem('pageLoaded')) {
-            // Если страница обновляется — удаляем прелоадер сразу
             preloader.style.display = 'none';
         } else {
-            // Если первый вход — показываем анимацию
             window.addEventListener('load', () => {
                 setTimeout(() => {
                     preloader.style.opacity = '0';
