@@ -190,7 +190,7 @@ app.get('/user-profile/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ВИДЕО (ИСПРАВЛЕННЫЙ МАРШРУТ) ---
+// --- ВИДЕО ---
 
 app.post('/upload', uploadFields, async (req, res) => {
     let videoLocalPath = "";
@@ -201,7 +201,6 @@ app.post('/upload', uploadFields, async (req, res) => {
         
         videoLocalPath = files.video[0].path;
 
-        // Загрузка
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video", 
             folder: "videohub/videos",
@@ -219,7 +218,6 @@ app.post('/upload', uploadFields, async (req, res) => {
             finalThumbUrl = thumbResult.secure_url;
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
-            // Самый надежный способ получить превью
             finalThumbUrl = videoResult.secure_url.substring(0, videoResult.secure_url.lastIndexOf(".")) + ".jpg";
         }
 
@@ -229,7 +227,6 @@ app.post('/upload', uploadFields, async (req, res) => {
             views: 0, created_at: new Date()
         });
 
-        // Уведомления
         try {
             const subscribers = await db.collection('subscriptions').find({ author_name: username }).toArray();
             if (subscribers.length > 0) {
@@ -408,6 +405,35 @@ app.post('/videos/:id/comments', async (req, res) => {
         }
 
         res.status(201).send("Комментарий добавлен");
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// НОВЫЙ МАРШРУТ: Удаление комментария
+app.delete('/videos/:id/comments/:commentId', async (req, res) => {
+    try {
+        const { id, commentId } = req.params;
+        const { username } = req.body;
+
+        if (!ObjectId.isValid(commentId)) return res.status(400).send("Некорректный ID комментария");
+
+        // Ищем комментарий
+        const comment = await db.collection('video_comments').findOne({ _id: new ObjectId(commentId) });
+        if (!comment) return res.status(404).send("Комментарий не найден");
+
+        // Ищем видео, чтобы узнать автора канала
+        const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
+
+        // Проверка прав: автор коммента, автор видео или админ
+        const isAuthorOfComment = (comment.user_name === username);
+        const isAuthorOfVideo = (video && video.author_name === username);
+        const isAdmin = (username === "admin" || username === "MrGarder");
+
+        if (isAuthorOfComment || isAuthorOfVideo || isAdmin) {
+            await db.collection('video_comments').deleteOne({ _id: new ObjectId(commentId) });
+            res.status(200).json({ success: true });
+        } else {
+            res.status(403).send("Нет прав на удаление");
+        }
     } catch (err) { res.status(500).send(err.message); }
 });
 
