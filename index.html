@@ -63,7 +63,7 @@
 
     .voice-btn.listening { 
         border-color: var(--voice-cyan); 
-        background: rgba(0, 242, 255, 1); 
+        background: rgba(0, 242, 255, 0.1); 
         box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
     }
     .voice-btn.listening .mic-icon { display: none; }
@@ -108,7 +108,6 @@
     .dropdown-content button { width: 100%; padding: 12px 15px; background: none; border: none; color: #fff; text-align: left; cursor: pointer; font-size: 13px; transition: 0.2s; }
     .dropdown-content button:hover { background: rgba(107, 92, 255, 0.2); }
 
-    /* --- УВЕДОМЛЕНИЯ --- */
     .notif-container { position: relative; display: flex; align-items: center; }
     .notif-badge { 
       position: absolute; top: -5px; right: -5px; background: var(--danger); 
@@ -130,7 +129,6 @@
     .notif-item b { color: var(--accent); }
     .notif-empty { padding: 20px; text-align: center; color: #666; font-size: 12px; }
 
-    /* --- МИНИ-ПЛЕЕР --- */
     #miniPlayer {
       position: fixed; bottom: 20px; right: 20px; width: 300px;
       background: rgba(26, 26, 36, 0.9); border: 1px solid var(--accent);
@@ -138,6 +136,7 @@
       box-shadow: 0 15px 40px rgba(0,0,0,0.8); display: none;
       backdrop-filter: blur(10px); cursor: pointer;
       transition: transform 0.3s ease;
+      touch-action: none; /* Важно для мобилок! */
     }
     #miniPlayer:hover { transform: translateY(-5px); }
     
@@ -237,7 +236,6 @@
         renderVideos(filtered);
     }
 
-    // --- УВЕДОМЛЕНИЯ ---
     async function loadNotifications() {
         const user = localStorage.getItem('currentUser');
         if (!user) return;
@@ -246,20 +244,15 @@
             const notes = await res.json();
             const badge = document.getElementById('notifBadge');
             const list = document.getElementById('notifList');
-            
             const unreadCount = notes.filter(n => !n.read).length;
             if (unreadCount > 0) {
                 badge.innerText = unreadCount;
                 badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-
+            } else { badge.style.display = 'none'; }
             if (notes.length === 0) {
                 list.innerHTML = '<div class="notif-empty">Пока нет уведомлений</div>';
                 return;
             }
-
             list.innerHTML = notes.map(n => `
                 <div class="notif-item" onclick="location.href='watch.html?v=${n.video_id}'">
                     <b>@${n.from_user}</b> ${n.text}
@@ -279,13 +272,11 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ username: user })
             }).then(() => {
-                const b = document.getElementById('notifBadge');
-                if(b) b.style.display = 'none';
+                document.getElementById('notifBadge').style.display = 'none';
             });
         }
     }
 
-    // --- ГОЛОСОВОЙ ПОИСК ---
     const voiceBtn = document.getElementById('voiceSearchBtn');
     const searchInput = document.getElementById('searchInput');
     const waveElements = document.querySelectorAll('.wave');
@@ -346,7 +337,6 @@
         }
     } else { voiceBtn.style.display = 'none'; }
 
-    // --- ОТРИСОВКА ВИДЕО ---
     function renderVideos(videos) {
         const videoList = document.getElementById("videoList");
         if (videos.length === 0) {
@@ -392,7 +382,6 @@
         }
     }
 
-    // --- ЛОГИКА МИНИ-ПЛЕЕРА ---
     function checkMiniPlayer() {
         const data = localStorage.getItem('lastWatched');
         if (data) {
@@ -400,14 +389,11 @@
             const mini = document.getElementById('miniPlayer');
             const v = document.getElementById('miniVideo');
             const t = document.getElementById('miniTitle');
-            
             mini.style.display = 'block';
             t.innerText = videoData.title;
             v.src = videoData.url;
             v.currentTime = videoData.time || 0;
-            v.play().catch(() => {
-                document.getElementById('miniPauseBtn').innerText = '▶';
-            });
+            v.play().catch(() => { document.getElementById('miniPauseBtn').innerText = '▶'; });
         }
     }
 
@@ -415,40 +401,24 @@
         e.stopPropagation();
         const v = document.getElementById('miniVideo');
         const btn = document.getElementById('miniPauseBtn');
-        if (v.paused) {
-            v.play();
-            btn.innerText = '⏸';
-        } else {
-            v.pause();
-            btn.innerText = '▶';
-        }
+        if (v.paused) { v.play(); btn.innerText = '⏸'; } 
+        else { v.pause(); btn.innerText = '▶'; }
     }
 
-    function nextVideo(e) {
-        e.stopPropagation();
-        changeVideo(1);
-    }
-
-    function prevVideo(e) {
-        e.stopPropagation();
-        changeVideo(-1);
-    }
+    function nextVideo(e) { e.stopPropagation(); changeVideo(1); }
+    function prevVideo(e) { e.stopPropagation(); changeVideo(-1); }
 
     function changeVideo(direction) {
         const data = localStorage.getItem('lastWatched');
         if (!data || allVideosData.length === 0) return;
-        
         const current = JSON.parse(data);
         const currentIndex = allVideosData.findIndex(v => String(v._id) === String(current.id));
-        
         let nextIndex = currentIndex + direction;
         if (nextIndex >= allVideosData.length) nextIndex = 0;
         if (nextIndex < 0) nextIndex = allVideosData.length - 1;
-        
         const nextVid = allVideosData[nextIndex];
         const newData = { id: nextVid._id, title: nextVid.title, url: nextVid.url, time: 0 };
         localStorage.setItem('lastWatched', JSON.stringify(newData));
-        
         const v = document.getElementById('miniVideo');
         document.getElementById('miniTitle').innerText = nextVid.title;
         v.src = nextVid.url;
@@ -474,46 +444,55 @@
         document.getElementById('miniVideo').pause();
     }
 
-    // --- DRAG & DROP ---
+    // --- ОБНОВЛЕННЫЙ DRAG & DROP (МЫШЬ + ТАЧ) ---
     const dragPlayer = document.getElementById('miniPlayer');
     const dragHandle = document.getElementById('miniDraggable');
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
 
-    dragHandle.addEventListener('mousedown', (e) => {
+    function startDrag(e) {
         isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
         const rect = dragPlayer.getBoundingClientRect();
         initialLeft = rect.left;
         initialTop = rect.top;
         dragPlayer.style.transition = 'none';
         dragPlayer.style.bottom = 'auto';
         dragPlayer.style.right = 'auto';
-    });
+    }
 
-    document.addEventListener('mousemove', (e) => {
+    function moveDrag(e) {
         if (!isDragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+        const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
         dragPlayer.style.left = (initialLeft + dx) + 'px';
         dragPlayer.style.top = (initialTop + dy) + 'px';
-    });
+    }
 
-    document.addEventListener('mouseup', () => {
+    function stopDrag() {
         if (isDragging) {
             isDragging = false;
             dragPlayer.style.transition = 'transform 0.3s ease';
         }
-    });
+    }
 
-    // --- АВТОРИЗАЦИЯ ---
+    dragHandle.addEventListener('mousedown', startDrag);
+    dragHandle.addEventListener('touchstart', startDrag, {passive: true});
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('touchmove', moveDrag, {passive: false});
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('touchend', stopDrag);
+
     function checkAuth() {
       const username = localStorage.getItem('currentUser');
       const authSection = document.getElementById("authSection");
       if (username) {
         let adminBtn = (username === 'MrGarder') ? `<button onclick="location.href='admin.html'" style="border:1px solid gold; color:gold">⚙ Админка</button>` : '';
-        
         authSection.innerHTML = `
           <div class="notif-container">
             <button class="icon-btn" onclick="toggleNotifs()">🔔 <span id="notifBadge" class="notif-badge">0</span></button>
@@ -571,10 +550,7 @@
         }
     }
 
-    window.onload = () => {
-      checkAuth();
-      fetchVideos();
-    };
+    window.onload = () => { checkAuth(); fetchVideos(); };
   </script>
 </body>
 </html>
