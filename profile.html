@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>VideoHub — Профиль</title>
   <style>
-    :root { --accent: #8b5cf6; --bg: #0d0b14; --text: #e5e1ff; }
+    :root { --accent: #8b5cf6; --bg: #0d0b14; --text: #e5e1ff; --glass: rgba(255,255,255,0.04); }
     body { 
         margin: 0; font-family: 'Inter', sans-serif; background: #0b0912; color: var(--text);
         background: linear-gradient(135deg, #0d0b14 0%, #161225 100%); min-height: 100vh;
@@ -12,11 +12,25 @@
     
     .topbar { 
         position: fixed; top: 0; width: 100%; height: 60px; background: rgba(13,11,20,0.8);
-        backdrop-filter: blur(10px); display: flex; align-items: center; padding: 0 20px; z-index: 100;
+        backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100;
         border-bottom: 1px solid rgba(255,255,255,0.05); box-sizing: border-box;
     }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
     .back-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .back-btn:hover { background: var(--accent); }
+
+    /* Уведомления */
+    .noti-wrapper { position: relative; cursor: pointer; }
+    #notiBtn { background: none; border: none; font-size: 20px; color: var(--text); cursor: pointer; position: relative; }
+    #notiCount { position: absolute; top: -5px; right: -5px; background: #ff4e4e; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; display: none; }
+    .noti-dropdown { 
+        position: absolute; top: 40px; right: 0; width: 280px; background: #252538; 
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: none; 
+        max-height: 400px; overflow-y: auto; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .noti-item { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; transition: 0.2s; text-align: left; }
+    .noti-item:hover { background: rgba(255,255,255,0.05); }
+    .noti-item.unread { border-left: 3px solid var(--accent); background: rgba(107, 92, 255, 0.05); }
 
     .banner-container { position: relative; height: 250px; background: #1a1a1a; overflow: hidden; margin-top: 60px; }
     #bannerImg { width: 100%; height: 100%; object-fit: cover; }
@@ -69,7 +83,14 @@
 <body>
 
 <div class="topbar">
-  <button class="back-btn" onclick="location.href='index.html'">← На главную</button>
+  <div class="topbar-left">
+    <button class="back-btn" onclick="location.href='index.html'">← На главную</button>
+  </div>
+  
+  <div class="noti-wrapper">
+    <button id="notiBtn" onclick="toggleNoti()">🔔 <span id="notiCount">0</span></button>
+    <div id="notiList" class="noti-dropdown"></div>
+  </div>
 </div>
 
 <div class="banner-container">
@@ -120,16 +141,53 @@
   function openModal(id) { document.getElementById(id).style.display='flex'; }
   function closeModals() { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
 
+  // Уведомления
+  async function loadNoti() {
+      if(!currentUser) return;
+      try {
+          const res = await fetch(`${API_URL}/notifications/${currentUser}`);
+          const notes = await res.json();
+          const badge = document.getElementById('notiCount');
+          const list = document.getElementById('notiList');
+          
+          const unread = notes.filter(n => !n.read).length;
+          if(unread > 0) {
+              badge.innerText = unread;
+              badge.style.display = 'block';
+          } else badge.style.display = 'none';
+
+          list.innerHTML = notes.map(n => `
+              <div class="noti-item ${n.read ? '' : 'unread'}" onclick="location.href='watch.html?v=${n.video_id || ''}'">
+                  <b>@${n.from_user}</b> ${n.text}
+              </div>
+          `).join('') || '<div class="noti-item">Уведомлений нет</div>';
+      } catch(e) {}
+  }
+
+  async function toggleNoti() {
+      const list = document.getElementById('notiList');
+      const isVisible = list.style.display === 'block';
+      list.style.display = isVisible ? 'none' : 'block';
+      
+      if(!isVisible && currentUser) {
+          await fetch(`${API_URL}/notifications/read`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ username: currentUser })
+          });
+          document.getElementById('notiCount').style.display = 'none';
+          setTimeout(loadNoti, 500);
+      }
+  }
+
   async function load() {
+    loadNoti();
     try {
-        // 1. Загружаем данные профиля (фото и баннер) с сервера
         const profileRes = await fetch(`${API_URL}/user-profile/${targetUser}`);
         const profile = await profileRes.json();
 
-        // Отображаем ник
         document.getElementById('displayUsername').innerText = profile.username || `@${targetUser}`;
         
-        // Отображаем аватарку
         const avatarEl = document.getElementById('userAvatar');
         if(profile.avatarUrl) {
             avatarEl.innerHTML = '';
@@ -139,16 +197,13 @@
             avatarEl.style.backgroundImage = 'none';
         }
 
-        // Отображаем баннер
         if(profile.bannerUrl) {
             document.getElementById('bannerImg').src = profile.bannerUrl;
         }
 
-        // 2. Загружаем видео автора
         const vidRes = await fetch(`${API_URL}/user-videos/${targetUser}`);
         const userVideos = await vidRes.json();
 
-        // 3. Статус подписки и количество
         let isSubscribed = false;
         if (currentUser && currentUser !== targetUser) {
             const subRes = await fetch(`${API_URL}/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
@@ -162,7 +217,6 @@
 
         document.getElementById('videoStats').innerText = `${subsCount} подписчиков • ${userVideos.length} видео`;
 
-        // Кнопки управления
         const controls = document.getElementById('profileControls');
         if (targetUser === currentUser) {
             controls.innerHTML = `<button class="btn btn-edit" onclick="openModal('editModal')">⚙️ Настроить</button>`;
@@ -220,7 +274,6 @@
       btn.disabled = true;
 
       try {
-          // 1. Если меняем имя
           if (newName) {
               await fetch(`${API_URL}/update-profile`, {
                   method: 'POST',
@@ -230,7 +283,6 @@
               localStorage.setItem('currentUser', newName.trim());
           }
 
-          // 2. Если загружаем аватар
           if (avatarFile) {
               const formData = new FormData();
               formData.append('avatar', avatarFile);
@@ -238,7 +290,6 @@
               await fetch(`${API_URL}/update-avatar`, { method: 'POST', body: formData });
           }
 
-          // 3. Если загружаем баннер
           if (bannerFile) {
               const formData = new FormData();
               formData.append('banner', bannerFile);
