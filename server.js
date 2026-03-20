@@ -58,6 +58,21 @@ async function connectDB() {
 }
 connectDB();
 
+// --- Вспомогательная функция для уведомлений ---
+async function createNotification(toUser, fromUser, text, videoId) {
+    if (toUser === fromUser) return; // Не уведомлять самого себя
+    try {
+        await db.collection('notifications').insertOne({
+            to_user: toUser,
+            from_user: fromUser,
+            text: text,
+            video_id: videoId,
+            read: false,
+            created_at: new Date()
+        });
+    } catch (e) { console.error("Ошибка создания уведомления:", e); }
+}
+
 // --- НАСТРОЙКА MULTER ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -122,7 +137,6 @@ app.post('/login', async (req, res) => {
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
-// АВТОРИЗАЦИЯ ЧЕРЕЗ GOOGLE
 app.post('/google-auth', async (req, res) => {
     const { token } = req.body;
     try {
@@ -186,7 +200,6 @@ app.post('/update-profile', async (req, res) => {
     } catch (err) { res.status(500).send("Ошибка сервера: " + err.message); }
 });
 
-// ОБНОВЛЕНИЕ АВАТАРКИ
 app.post('/update-avatar', imgUpload.single('avatar'), async (req, res) => {
     const { username } = req.body;
     if (!req.file) return res.status(400).send('Файл не выбран');
@@ -209,7 +222,6 @@ app.post('/update-avatar', imgUpload.single('avatar'), async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// ОБНОВЛЕНИЕ БАННЕРА
 app.post('/update-banner', imgUpload.single('banner'), async (req, res) => {
     const { username } = req.body;
     if (!req.file) return res.status(400).send('Файл не выбран');
@@ -232,7 +244,6 @@ app.post('/update-banner', imgUpload.single('banner'), async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// Получение профиля (аватарка и прочее)
 app.get('/user-profile/:username', async (req, res) => {
     try {
         const user = await db.collection('users').findOne({ username: req.params.username });
@@ -345,6 +356,11 @@ app.post('/videos/:id/like', async (req, res) => {
             res.json({ action: 'unliked' });
         } else {
             await db.collection('video_likes').insertOne({ user_name: username, video_id: videoId });
+            
+            // Уведомление автору видео
+            const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
+            if (video) await createNotification(video.author_name, username, "оценил(а) ваше видео", videoId);
+            
             res.json({ action: 'liked' });
         }
     } catch (err) { res.status(500).send(err.message); }
@@ -384,6 +400,10 @@ app.post('/subscribe', async (req, res) => {
             res.json({ status: 'unsubscribed' });
         } else {
             await db.collection('subscriptions').insertOne({ follower_name: follower, author_name: authorName });
+            
+            // Уведомление о подписке
+            await createNotification(authorName, follower, "подписался(ась) на вас", null);
+
             res.json({ status: 'subscribed' });
         }
     } catch (err) { res.status(500).send(err.message); }
@@ -425,20 +445,49 @@ app.get('/videos/:id/comments', async (req, res) => {
 
 app.post('/videos/:id/comments', async (req, res) => {
     const { username, text } = req.body;
+    const videoId = req.params.id;
     try {
         await db.collection('video_comments').insertOne({
-            video_id: req.params.id,
+            video_id: videoId,
             user_name: username,
             comment_text: text,
             created_at: new Date()
         });
+
+        // Уведомление автору видео
+        const video = await db.collection('videos').findOne({ _id: new ObjectId(videoId) });
+        if (video) await createNotification(video.author_name, username, `оставил(а) комментарий: "${text.substring(0, 20)}..."`, videoId);
+
         res.status(201).send("Комментарий добавлен");
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- АДМИН-ПАНЕЛЬ: НОВЫЕ РОУТЫ ---
+// --- МАРШРУТЫ: УВЕДОМЛЕНИЯ ---
 
-// Получить всех пользователей для админки
+app.get('/notifications/:username', async (req, res) => {
+    try {
+        const notes = await db.collection('notifications')
+            .find({ to_user: req.params.username })
+            .sort({ created_at: -1 })
+            .limit(20)
+            .toArray();
+        res.json(notes);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+app.post('/notifications/read', async (req, res) => {
+    try {
+        const { username } = req.body;
+        await db.collection('notifications').updateMany(
+            { to_user: username, read: false },
+            { $set: { read: true } }
+        );
+        res.sendStatus(200);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// --- АДМИН-ПАНЕЛЬ ---
+
 app.get('/admin/users', async (req, res) => {
     try {
         const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
@@ -446,7 +495,6 @@ app.get('/admin/users', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// Удалить пользователя (Бан)
 app.delete('/admin/delete-user/:id', async (req, res) => {
     try {
         const { id } = req.params;
