@@ -2,638 +2,633 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VideoHub — Главная</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --bg:        #080810;
-      --bg2:       #0e0e1a;
-      --bg3:       #13131f;
-      --accent:    #7c5cfc;
-      --accent2:   #c23bff;
-      --cyan:      #00e5ff;
-      --glow:      rgba(124, 92, 252, 0.35);
-      --glow2:     rgba(0, 229, 255, 0.2);
-      --text:      #f0eeff;
-      --muted:     #6e6a8a;
-      --border:    rgba(124, 92, 252, 0.18);
-      --card:      rgba(255,255,255,0.03);
-      --card-h:    rgba(124, 92, 252, 0.08);
-      --danger:    #ff4e6a;
-      --grid-line: rgba(124, 92, 252, 0.06);
-      --radius:    14px;
-      --font-head: 'Syne', sans-serif;
-      --font-mono: 'Space Mono', monospace;
+    :root{
+      --bg1: #1e1e2f;
+      --accent: #6b5cff;
+      --text: #fff;
+      --card-bg: rgba(255,255,255,0.06);
+      --glass: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.12);
+      --voice-cyan: #6a00ff; 
+      --voice-glow: rgba(255, 0, 217, 0.4);
+      --danger: #ff4e4e;
     }
 
-    /* ——— RESET ——— */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; font-family: var(--font-head); background: var(--bg); color: var(--text); overflow-x: hidden; }
-    button { font-family: inherit; }
-    a { text-decoration: none; color: inherit; }
-
-    /* ——— GRID BACKGROUND ——— */
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image:
-        linear-gradient(var(--grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
-    }
-
-    /* ——— AMBIENT GLOWS ——— */
-    .glow-blob {
-      position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
-    }
-    .glow-blob.b1 { width: 600px; height: 600px; background: rgba(124,92,252,0.12); top: -200px; left: -150px; }
-    .glow-blob.b2 { width: 400px; height: 400px; background: rgba(194,59,255,0.08); top: 40%; right: -100px; }
-    .glow-blob.b3 { width: 300px; height: 300px; background: rgba(0,229,255,0.06); bottom: 10%; left: 20%; }
-
-    /* ——— PRELOADER ——— */
+    /* --- ИСПРАВЛЕННЫЙ ПРЕЛОАДЕР --- */
     #preloader {
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
-      transition: opacity 0.7s ease;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 10000; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .pre-logo { display: flex; gap: 4px; }
-    .pre-logo .cell {
-      width: 18px; height: 18px; border-radius: 3px; background: var(--accent);
-      animation: cellPop 1.2s infinite ease-in-out;
+    .loader-content { text-align: center; }
+    
+    /* Круглое место под твое фото */
+    .loader-photo { 
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      border: 3px solid var(--accent);
+      box-shadow: 0 0 25px var(--accent);
+      object-fit: cover;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      animation: photoPulse 2s infinite ease-in-out;
     }
-    .pre-logo .cell:nth-child(2) { animation-delay: 0.15s; background: var(--accent2); }
-    .pre-logo .cell:nth-child(3) { animation-delay: 0.30s; background: var(--cyan); }
-    @keyframes cellPop {
-      0%, 100% { transform: scaleY(1); opacity: 0.5; }
-      50%       { transform: scaleY(1.7); opacity: 1; }
+    
+    .loader-text {
+      font-size: 28px; font-weight: 800; color: #fff;
+      letter-spacing: -1px; margin-bottom: 25px;
     }
-    .pre-label { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
-    .pre-label span { color: var(--accent); }
-    .pre-bar { width: 180px; height: 2px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-    .pre-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--cyan)); animation: preLoad 2s ease-in-out forwards; }
-    @keyframes preLoad { from { width: 0% } to { width: 100% } }
+    .loader-text span { color: var(--accent); }
+    .loader-track {
+      width: 220px; height: 3px; background: rgba(255,255,255,0.05);
+      border-radius: 10px; overflow: hidden; margin: 0 auto;
+    }
+    .loader-bar {
+      width: 0%; height: 100%; background: var(--accent);
+      box-shadow: 0 0 15px var(--accent);
+      animation: loadAnim 2.5s infinite ease-in-out;
+    }
+    @keyframes photoPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px var(--accent)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 30px var(--accent)); }
+    }
+    @keyframes loadAnim {
+      0% { width: 0%; margin-left: 0%; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+    /* ------------------------------ */
 
-    /* ——— TOPBAR ——— */
+    html,body{
+      height:100%; margin:0; font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #11111a 0%, #1b1630 100%);
+      color: var(--text); overflow-x: hidden;
+    }
+    .bg-glow { position: fixed; left:-200px; top:-120px; width:700px; height:700px;
+      background: radial-gradient(circle at 30% 30%, #5a4bff33 0%, transparent 40%);
+      filter: blur(110px); z-index:0; pointer-events:none; }
+    
     .topbar {
-      position: sticky; top: 0; z-index: 200;
-      display: flex; align-items: center; gap: 12px;
-      padding: 0 20px; height: 64px;
-      background: rgba(8,8,16,0.85);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(20px);
+      position: sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between;
+      gap:12px; padding:12px 20px; background: var(--glass); border-bottom:1px solid var(--border);
+      backdrop-filter: blur(12px);
     }
+    .left-group, .right-group { display:flex; align-items:center; gap:12px; }
+    .logo { font-weight:700; font-size:22px; cursor: pointer; }
+    .logo span { color: var(--accent); }
 
-    /* ——— LOGO (BLOCK GRID STYLE) ——— */
-    .logo {
-      display: flex; align-items: center; gap: 8px;
-      cursor: pointer; flex-shrink: 0;
-      text-decoration: none;
+    .search-box { flex: 1; max-width: 500px; position: relative; display: flex; align-items: center; }
+    .search-box input { 
+        width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); 
+        padding: 10px 60px 10px 15px; border-radius: 20px; color: #fff; outline: none; transition: 0.3s;
     }
-    .logo-mark {
-      display: grid; grid-template-columns: repeat(3, 7px); grid-template-rows: repeat(3, 7px); gap: 2px;
-    }
-    .logo-mark .dot {
-      border-radius: 2px; background: var(--accent);
-      transition: transform 0.3s ease, background 0.3s ease;
-    }
-    .logo-mark .dot:nth-child(1) { background: var(--accent); }
-    .logo-mark .dot:nth-child(2) { background: var(--accent2); opacity: 0.7; }
-    .logo-mark .dot:nth-child(3) { background: var(--accent); opacity: 0.4; }
-    .logo-mark .dot:nth-child(4) { background: var(--accent2); opacity: 0.4; }
-    .logo-mark .dot:nth-child(5) { background: var(--cyan); }
-    .logo-mark .dot:nth-child(6) { background: var(--accent); opacity: 0.4; }
-    .logo-mark .dot:nth-child(7) { background: var(--accent); opacity: 0.4; }
-    .logo-mark .dot:nth-child(8) { background: var(--accent2); opacity: 0.7; }
-    .logo-mark .dot:nth-child(9) { background: var(--accent); }
-    .logo:hover .logo-mark .dot { animation: dotShuffle 0.5s ease; }
-    @keyframes dotShuffle { 0% { transform: scale(1) } 50% { transform: scale(1.3) } 100% { transform: scale(1) } }
-    .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-    .logo-text em { font-style: normal; color: var(--accent); }
-
-    /* ——— SEARCH ——— */
-    .search-wrap { flex: 1; max-width: 480px; position: relative; display: flex; align-items: center; }
-    .search-wrap input {
-      width: 100%; height: 40px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 0 50px 0 18px;
-      color: var(--text); font-family: var(--font-head); font-size: 14px;
-      outline: none; transition: 0.25s;
-    }
-    .search-wrap input::placeholder { color: var(--muted); }
-    .search-wrap input:focus {
-      border-color: var(--accent);
-      background: rgba(124,92,252,0.07);
-      box-shadow: 0 0 0 3px rgba(124,92,252,0.12);
-    }
+    .search-box input:focus { border-color: var(--accent); background: rgba(0,0,0,0.4); }
+    
     .voice-btn {
-      position: absolute; right: 4px;
-      width: 34px; height: 34px; border-radius: 16px;
-      background: transparent; border: 1px solid rgba(255,255,255,0.06);
-      color: var(--muted); cursor: pointer; transition: 0.25s;
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
+        position: absolute; right: 5px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.5); cursor: pointer; transition: 0.3s;
+        padding: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 20px; width: 50px; height: 32px; overflow: hidden;
     }
-    .voice-btn:hover { color: var(--cyan); border-color: var(--cyan); background: rgba(0,229,255,0.07); }
-    .voice-btn.listening { border-color: var(--cyan); background: rgba(0,229,255,0.1); box-shadow: 0 0 12px rgba(0,229,255,0.25); }
+    .voice-btn:hover { color: var(--voice-cyan); border-color: var(--voice-cyan); background: rgba(0, 242, 255, 0.05); }
+
+    .mic-icon { font-size: 16px; transition: 0.3s; }
+    
+    .voice-waves {
+        position: absolute; width: 100%; height: 100%;
+        display: none; align-items: center; justify-content: center; gap: 3px;
+    }
+    .wave {
+        width: 3px; height: 4px; background: var(--voice-cyan);
+        border-radius: 2px; transition: height 0.1s ease;
+        box-shadow: 0 0 10px var(--voice-glow);
+    }
+
+    .voice-btn.listening { 
+        border-color: var(--voice-cyan); 
+        background: rgba(0, 242, 255, 0.1); 
+        box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+    }
     .voice-btn.listening .mic-icon { display: none; }
     .voice-btn.listening .voice-waves { display: flex; }
-    .mic-icon { font-size: 14px; }
-    .voice-waves { display: none; align-items: center; justify-content: center; gap: 2px; }
-    .wave { width: 3px; height: 4px; background: var(--cyan); border-radius: 2px; transition: height 0.1s ease; }
+    
+    .icon-btn { background: transparent; border: 1px solid rgba(255,255,255,0.06);
+      padding:8px 10px; border-radius:10px; cursor:pointer; color:var(--text); transition:.18s; }
+    .upload-btn { background: linear-gradient(135deg, var(--accent), #5143ff); border:none;
+      padding:8px 14px; border-radius:12px; color:#fff; cursor:pointer; transition:.18s; }
 
-    /* ——— NAV ACTIONS ——— */
-    .nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .icon-btn {
-      height: 38px; padding: 0 12px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      border-radius: 10px; color: var(--text); cursor: pointer; font-size: 13px;
-      display: flex; align-items: center; gap: 6px; transition: 0.2s;
-    }
-    .icon-btn:hover { background: rgba(124,92,252,0.12); border-color: var(--accent); color: #fff; }
-    .upload-btn {
-      height: 38px; padding: 0 16px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none; border-radius: 10px; color: #fff; cursor: pointer; font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; gap: 6px; transition: 0.2s;
-      box-shadow: 0 4px 18px rgba(124,92,252,0.35);
-    }
-    .upload-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,92,252,0.5); }
-    .menu-btn {
-      width: 38px; height: 38px; padding: 0;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      border-radius: 10px; color: var(--text); cursor: pointer; font-size: 18px; transition: 0.2s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .menu-btn:hover { background: rgba(124,92,252,0.12); border-color: var(--accent); }
+    .sidebar{ position:fixed; left:-240px; top:70px; width:220px; height:calc(100% - 70px);
+      padding-top:16px; background: rgba(255,255,255,0.02); border-right:1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(12px); z-index:25; transition: .35s ease; }
+    .sidebar.open{ left:0; }
+    .sidebar a{ display:block; padding:12px 18px; color:var(--text); text-decoration:none; transition:.14s;}
+    .sidebar a:hover { background: rgba(255,255,255,0.05); }
+    
+    main.videos{ padding:34px; display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:22px; position:relative; z-index:5; transition: 0.35s ease; }
 
-    /* ——— SIDEBAR ——— */
-    .sidebar {
-      position: fixed; top: 64px; left: -260px; width: 240px; height: calc(100vh - 64px);
-      background: rgba(8,8,16,0.95); border-right: 1px solid var(--border);
-      backdrop-filter: blur(20px); z-index: 180; transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
-      padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
-      overflow-y: auto;
-    }
-    .sidebar.open { left: 0; }
-    .sidebar a {
-      display: flex; align-items: center; gap: 12px; padding: 11px 14px;
-      border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600;
-      transition: 0.2s; letter-spacing: 0.01em;
-    }
-    .sidebar a:hover { background: var(--card-h); color: var(--text); }
-    .sidebar a .nav-icon { font-size: 18px; }
-    .sidebar-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; padding: 12px 14px 4px; }
+    .video-card{ background: var(--card-bg); border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,0.04); transition: .25s; cursor: pointer; }
+    .video-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); border-color: var(--accent); }
+    
+    .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative; }
+    .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 2; transition: opacity 0.3s ease; }
+    .thumb-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; z-index: 1; opacity: 0; transition: opacity 0.3s ease; }
 
-    /* ——— MAIN GRID ——— */
-    main.videos {
-      position: relative; z-index: 5;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 18px;
-      padding: 28px 24px;
-      transition: padding 0.35s;
-    }
+    .video-info { padding: 15px; }
+    .video-info h4 { margin: 0 0 8px 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .video-info p { margin: 0; font-size: 13px; color: #aaa; }
 
-    /* ——— VIDEO CARD ——— */
-    .video-card {
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 16px; overflow: hidden;
-      cursor: pointer; transition: transform 0.25s ease, border-color 0.25s, box-shadow 0.25s;
-      position: relative;
-    }
-    .video-card::before {
-      content: ''; position: absolute; inset: 0; border-radius: 16px;
-      background: linear-gradient(135deg, rgba(124,92,252,0.07), transparent);
-      opacity: 0; transition: opacity 0.25s; z-index: 1; pointer-events: none;
-    }
-    .video-card:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 12px 40px rgba(124,92,252,0.2); }
-    .video-card:hover::before { opacity: 1; }
-
-    .thumb-wrapper {
-      width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative;
-    }
-    .thumb-wrapper img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-      position: relative; z-index: 2; transition: opacity 0.35s ease;
-    }
-    .thumb-wrapper video {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-      position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity 0.35s ease;
-    }
-    .play-overlay {
-      position: absolute; inset: 0; z-index: 3;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.25); opacity: 0; transition: 0.25s;
-    }
-    .play-overlay .play-icon {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(124,92,252,0.85); backdrop-filter: blur(6px);
-      display: flex; align-items: center; justify-content: center; font-size: 18px;
-      transform: scale(0.8); transition: transform 0.2s;
-    }
-    .video-card:hover .play-overlay { opacity: 1; }
-    .video-card:hover .play-overlay .play-icon { transform: scale(1); }
-
-    .video-info { padding: 14px 14px 16px; }
-    .video-info h4 { margin: 0 0 7px; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
-    .video-meta { display: flex; align-items: center; justify-content: space-between; }
-    .video-author { font-size: 12px; color: var(--muted); }
-    .video-author b { color: var(--accent); font-weight: 600; }
-    .video-views { font-size: 11px; font-family: var(--font-mono); color: var(--muted); opacity: 0.8; }
-
-    /* ——— USER PROFILE ——— */
-    .user-profile { position: relative; display: flex; align-items: center; }
-    .user-name {
-      height: 38px; padding: 0 12px;
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(124,92,252,0.1); border: 1px solid rgba(124,92,252,0.3);
-      border-radius: 10px; font-size: 13px; font-weight: 700; color: #a78bff;
-      cursor: pointer; transition: 0.2s;
-    }
-    .user-name:hover { background: rgba(124,92,252,0.18); }
+    .user-profile { position: relative; display: flex; align-items: center; gap: 10px; }
+    .user-name { font-weight: 500; font-size: 14px; color: #8e82ff; cursor: pointer; padding: 5px; border-radius: 8px; transition: 0.2s; }
+    .user-name:hover { background: rgba(255,255,255,0.05); }
+    
     .dropdown-content {
-      display: none; position: absolute; top: calc(100% + 8px); right: 0;
-      background: #0d0d1a; border: 1px solid var(--border);
-      border-radius: var(--radius); min-width: 175px; z-index: 220;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden;
+      display: none; position: absolute; top: 40px; right: 0;
+      background: #1a1a24; border: 1px solid var(--accent);
+      border-radius: 12px; min-width: 170px; z-index: 110;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;
     }
-    .dropdown-content button {
-      width: 100%; padding: 11px 15px; background: none; border: none;
-      color: var(--text); text-align: left; cursor: pointer; font-size: 13px;
-      font-family: inherit; font-weight: 600; transition: 0.15s; display: flex; align-items: center; gap: 8px;
-    }
-    .dropdown-content button:hover { background: rgba(124,92,252,0.12); color: #fff; }
+    .dropdown-content button { width: 100%; padding: 12px 15px; background: none; border: none; color: #fff; text-align: left; cursor: pointer; font-size: 13px; transition: 0.2s; }
+    .dropdown-content button:hover { background: rgba(107, 92, 255, 0.2); }
 
-    /* ——— NOTIFICATIONS ——— */
     .notif-container { position: relative; display: flex; align-items: center; }
-    .notif-badge {
-      position: absolute; top: -4px; right: -4px;
-      background: var(--danger); color: #fff; font-size: 9px; font-family: var(--font-mono);
-      padding: 2px 5px; border-radius: 20px; display: none;
-      border: 1.5px solid var(--bg);
+    .notif-badge { 
+      position: absolute; top: -5px; right: -5px; background: var(--danger); 
+      color: white; font-size: 9px; padding: 2px 5px; border-radius: 50%; display: none; 
     }
     .notif-dropdown {
-      display: none; position: absolute; top: calc(100% + 8px); right: 0;
-      background: #0d0d1a; border: 1px solid var(--border);
-      border-radius: var(--radius); width: 290px; z-index: 220;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden;
+      display: none; position: absolute; top: 45px; right: 0;
+      background: #1a1a24; border: 1px solid var(--accent);
+      border-radius: 12px; width: 280px; z-index: 115;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); overflow: hidden;
     }
-    .notif-header { padding: 12px 15px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
-    .notif-list { max-height: 320px; overflow-y: auto; }
-    .notif-item { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; cursor: pointer; transition: 0.2s; }
-    .notif-item:hover { background: rgba(255,255,255,0.04); }
+    .notif-header { padding: 10px 15px; border-bottom: 1px solid var(--border); font-weight: bold; font-size: 13px; color: var(--accent); }
+    .notif-list { max-height: 350px; overflow-y: auto; }
+    .notif-item { 
+      padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); 
+      font-size: 12px; cursor: pointer; transition: 0.2s; 
+    }
+    .notif-item:hover { background: rgba(255,255,255,0.05); }
     .notif-item b { color: var(--accent); }
-    .notif-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 12px; }
+    .notif-empty { padding: 20px; text-align: center; color: #666; font-size: 12px; }
 
-    /* ——— MINI PLAYER ——— */
     #miniPlayer {
       position: fixed; bottom: 20px; right: 20px; width: 300px;
-      background: rgba(10,10,20,0.95); border: 1px solid var(--accent);
-      border-radius: 18px; overflow: hidden; z-index: 500;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,92,252,0.2);
-      display: none; backdrop-filter: blur(16px); cursor: pointer;
+      background: rgba(26, 26, 36, 0.9); border: 1px solid var(--accent);
+      border-radius: 16px; overflow: hidden; z-index: 1000;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.8); display: none;
+      backdrop-filter: blur(10px); cursor: pointer;
       transition: transform 0.3s ease;
       touch-action: none;
     }
-    #miniPlayer:hover { transform: translateY(-4px); }
+    #miniPlayer:hover { transform: translateY(-5px); }
+    
     .mini-video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; cursor: move; }
     #miniVideo { width: 100%; height: 100%; display: block; pointer-events: none; }
+    
     .mini-controls {
-      position: absolute; inset: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,0.7), transparent);
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      opacity: 0; transition: 0.25s; z-index: 2;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center;
+      justify-content: center; gap: 15px; opacity: 0; transition: 0.3s; z-index: 2;
     }
     .mini-video-container:hover .mini-controls { opacity: 1; }
+    
     .ctrl-btn {
-      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
       color: white; border-radius: 50%; width: 36px; height: 36px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; transition: 0.2s; backdrop-filter: blur(4px);
+      font-size: 16px; transition: 0.2s; backdrop-filter: blur(4px);
     }
-    .ctrl-btn:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.1); }
-    .mini-info { padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
-    .mini-info span { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; color: var(--text); }
-    .mini-close { background: rgba(255,75,107,0.12); border: none; color: #ff4b6b; cursor: pointer; font-size: 16px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
-    .mini-close:hover { background: #ff4b6b; color: #fff; }
+    .ctrl-btn:hover { background: var(--accent); transform: scale(1.1); }
 
-    /* ——— RESPONSIVE ——— */
-    @media (max-width: 680px) {
-      .topbar { padding: 0 12px; gap: 8px; }
-      .logo-text { display: none; }
-      .search-wrap { max-width: none; }
-      .upload-btn .btn-label { display: none; }
-      main.videos { padding: 16px 12px; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-    }
-    @media (max-width: 480px) {
-      main.videos { grid-template-columns: 1fr; }
-      #miniPlayer { width: calc(100% - 24px); right: 12px; bottom: 12px; }
-    }
+    .mini-info { padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .mini-info span { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; color: #eee; }
+    .mini-close { background: rgba(255,107,107,0.1); border: none; color: #ff6b6b; cursor: pointer; font-size: 18px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .mini-close:hover { background: #ff6b6b; color: white; }
   </style>
 </head>
 <body>
 
-<!-- GLOW BLOBS -->
-<div class="glow-blob b1"></div>
-<div class="glow-blob b2"></div>
-<div class="glow-blob b3"></div>
-
-<!-- PRELOADER -->
-<div id="preloader">
-  <div class="pre-logo">
-    <div class="cell"></div>
-    <div class="cell"></div>
-    <div class="cell"></div>
-  </div>
-  <div class="pre-label">Video<span>Hub</span></div>
-  <div class="pre-bar"><div class="pre-fill"></div></div>
-</div>
-
-<!-- TOPBAR -->
-<header class="topbar">
-  <button class="menu-btn" id="menuBtn">☰</button>
-
-  <a class="logo" href="index.html">
-    <div class="logo-mark">
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    </div>
-    <span class="logo-text">Video<em>Hub</em></span>
-  </a>
-
-  <div class="search-wrap">
-    <input type="text" id="searchInput" placeholder="Поиск видео или автора..." oninput="filterVideos()">
-    <button class="voice-btn" id="voiceSearchBtn" title="Голосовой поиск">
-      <span class="mic-icon">🎤</span>
-      <div class="voice-waves" id="voiceWaves">
-        <div class="wave"></div><div class="wave"></div>
-        <div class="wave"></div><div class="wave"></div>
-        <div class="wave"></div>
+  <div id="preloader">
+    <div class="loader-content">
+      <img class="loader-photo" src="uploads/IMG_5231.PNG" alt="Logo">
+      <div class="loader-text">Video<span>Hub</span></div>
+      <div class="loader-track">
+        <div class="loader-bar"></div>
       </div>
-    </button>
-  </div>
-
-  <div class="nav-right" id="authSection">
-    <button class="icon-btn" onclick="location.href='auth.html'">🔐 Войти</button>
-    <button class="upload-btn" onclick="alert('Войдите, чтобы загружать видео')">⬆ <span class="btn-label">Загрузить</span></button>
-  </div>
-</header>
-
-<!-- SIDEBAR -->
-<aside id="sidebar" class="sidebar">
-  <div class="sidebar-label">Навигация</div>
-  <a href="index.html"><span class="nav-icon">🏠</span>Главная</a>
-  <a href="profile.html"><span class="nav-icon">👤</span>Мой Профиль</a>
-  <a href="history.html"><span class="nav-icon">📜</span>История</a>
-  <a href="upload.html"><span class="nav-icon">⬆</span>Загрузить видео</a>
-  <a href="popular.html"><span class="nav-icon">🔥</span>Популярное</a>
-  <a href="assistant.html"><span class="nav-icon">🗂</span>Список обновлений</a>
-</aside>
-
-<!-- VIDEO GRID -->
-<main id="videoList" class="videos"></main>
-
-<!-- MINI PLAYER -->
-<div id="miniPlayer" onclick="goToVideo()">
-  <div class="mini-video-container" id="miniDraggable">
-    <video id="miniVideo" autoplay loop></video>
-    <div class="mini-controls">
-      <button class="ctrl-btn" onclick="prevVideo(event)">◀</button>
-      <button class="ctrl-btn" id="miniPauseBtn" onclick="togglePause(event)">⏸</button>
-      <button class="ctrl-btn" onclick="nextVideo(event)">▶</button>
     </div>
   </div>
-  <div class="mini-info">
-    <span id="miniTitle">Название видео</span>
-    <button class="mini-close" onclick="closeMiniPlayer(event)">×</button>
-  </div>
-</div>
 
-<script>
-  const API_URL = "https://videohub-c48i.onrender.com";
-  let allVideosData = [];
-  const sidebar = document.getElementById("sidebar");
-  document.getElementById("menuBtn").onclick = () => sidebar.classList.toggle("open");
+  <div class="bg-glow"></div>
 
-  // PRELOADER
-  (function(){
-    const pre = document.getElementById('preloader');
-    if (sessionStorage.getItem('pageLoaded')) {
-      pre.style.display = 'none';
-    } else {
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          pre.style.opacity = '0';
-          setTimeout(() => { pre.remove(); sessionStorage.setItem('pageLoaded','true'); }, 700);
-        }, 1800);
-      });
-    }
-  })();
+  <header class="topbar">
+    <div class="left-group">
+      <button class="icon-btn" id="menuBtn">☰</button>
+      <div class="logo" onclick="location.href='index.html'">Video<span>Hub</span></div>
+    </div>
 
-  // SEARCH
-  function filterVideos() {
-    const q = document.getElementById('searchInput').value.toLowerCase().trim();
-    renderVideos(allVideosData.filter(v =>
-      v.title.toLowerCase().includes(q) ||
-      (v.author_name && v.author_name.toLowerCase().includes(q))
-    ));
-  }
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Поиск видео или автора..." oninput="filterVideos()">
+        <button class="voice-btn" id="voiceSearchBtn" title="Голосовой поиск">
+            <span class="mic-icon">🎤</span>
+            <div class="voice-waves" id="voiceWaves">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+        </button>
+    </div>
 
-  // RENDER
-  function renderVideos(videos) {
-    const list = document.getElementById("videoList");
-    if (!videos.length) {
-      list.innerHTML = "<p style='grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;'>Ничего не найдено...</p>";
-      return;
-    }
-    list.innerHTML = videos.map(v => {
-      const media = v.thumbnail_url
-        ? `<img src="${v.thumbnail_url}" alt="thumb"><video src="${v.url}" muted loop preload="none"></video>`
-        : `<video src="${v.url}#t=0.1" muted loop preload="metadata" style="opacity:1;z-index:2;"></video>`;
-      return `
-        <div class="video-card"
-          onclick="location.href='watch.html?v=${v._id}'"
-          onmouseenter="playPreview(this)"
-          onmouseleave="stopPreview(this)">
-          <div class="thumb-wrapper">
-            ${media}
-            <div class="play-overlay"><div class="play-icon">▶</div></div>
+    <div class="right-group" id="authSection">
+      <button class="icon-btn" onclick="location.href='auth.html'">🔐 Войти</button>
+      <button class="upload-btn" onclick="alert('Войдите, чтобы загружать видео')">⬆ Загрузить</button>
+    </div>
+  </header>
+
+  <aside id="sidebar" class="sidebar">
+    <a href="index.html">🏠 Главная</a>
+    <a href="profile.html">👤 Мой Профиль</a>
+    <a href="history.html">📜 История</a>
+    <a href="upload.html">⬆ Загрузить видео</a>
+    <a href="popular.html">🔥 Популярное</a>
+    <a href="assistant.html">🗂 Список обновлений</a>
+  </aside>
+
+  <main id="videoList" class="videos"></main>
+
+  <div id="miniPlayer" onclick="goToVideo()">
+      <div class="mini-video-container" id="miniDraggable">
+          <video id="miniVideo" autoplay loop></video>
+          <div class="mini-controls">
+              <button class="ctrl-btn" onclick="prevVideo(event)" title="Назад">◀</button>
+              <button class="ctrl-btn" id="miniPauseBtn" onclick="togglePause(event)" title="Пауза/Пуск">⏸</button>
+              <button class="ctrl-btn" onclick="nextVideo(event)" title="Вперед">▶</button>
           </div>
-          <div class="video-info">
-            <h4>${v.title}</h4>
-            <div class="video-meta">
-              <span class="video-author">@<b>${v.author_name || 'Аноним'}</b></span>
-              <span class="video-views">👁 ${v.views || 0}</span>
+      </div>
+      <div class="mini-info">
+          <span id="miniTitle">Название видео</span>
+          <button class="mini-close" onclick="closeMiniPlayer(event)">×</button>
+      </div>
+  </div>
+
+  <script>
+    const API_URL = "https://videohub-c48i.onrender.com";
+    let allVideosData = [];
+    const sidebar = document.getElementById("sidebar");
+    const menuBtn = document.getElementById("menuBtn");
+    menuBtn.onclick = () => sidebar.classList.toggle("open");
+
+    // ЛОГИКА ПРЕЛОАДЕРА (СКРЫВАЕТ ПРИ ОБНОВЛЕНИИ)
+    (function() {
+        const preloader = document.getElementById('preloader');
+        if (sessionStorage.getItem('pageLoaded')) {
+            preloader.style.display = 'none';
+        } else {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    preloader.style.opacity = '0';
+                    setTimeout(() => { 
+                        preloader.remove(); 
+                        sessionStorage.setItem('pageLoaded', 'true');
+                    }, 600);
+                }, 1500);
+            });
+        }
+    })();
+
+    function filterVideos() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const filtered = allVideosData.filter(v => 
+            v.title.toLowerCase().includes(query) || 
+            (v.author_name && v.author_name.toLowerCase().includes(query))
+        );
+        renderVideos(filtered);
+    }
+
+    async function loadNotifications() {
+        const user = localStorage.getItem('currentUser');
+        if (!user) return;
+        try {
+            const res = await fetch(`${API_URL}/notifications/${user}`);
+            const notes = await res.json();
+            const badge = document.getElementById('notifBadge');
+            const list = document.getElementById('notifList');
+            const unreadCount = notes.filter(n => !n.read).length;
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.style.display = 'block';
+            } else { badge.style.display = 'none'; }
+            if (notes.length === 0) {
+                list.innerHTML = '<div class="notif-empty">Пока нет уведомлений</div>';
+                return;
+            }
+            list.innerHTML = notes.map(n => `
+                <div class="notif-item" onclick="location.href='watch.html?v=${n.video_id}'">
+                    <b>@${n.from_user}</b> ${n.text}
+                </div>
+            `).join('');
+        } catch (err) { console.error("Ошибка уведомлений", err); }
+    }
+
+    function toggleNotifs() {
+        const menu = document.getElementById('notifMenu');
+        const isVisible = menu.style.display === 'block';
+        menu.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            const user = localStorage.getItem('currentUser');
+            fetch(`${API_URL}/notifications/read`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user })
+            }).then(() => {
+                document.getElementById('notifBadge').style.display = 'none';
+            });
+        }
+    }
+
+    const voiceBtn = document.getElementById('voiceSearchBtn');
+    const searchInput = document.getElementById('searchInput');
+    const waveElements = document.querySelectorAll('.wave');
+    let audioCtx, analyser, dataArray, animationId, stream;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.interimResults = true;
+        voiceBtn.onclick = () => {
+            if (voiceBtn.classList.contains('listening')) recognition.stop();
+            else recognition.start();
+        };
+        recognition.onstart = async () => {
+            voiceBtn.classList.add('listening');
+            searchInput.placeholder = "Слушаю...";
+            searchInput.value = "";
+            await startVisualizer();
+        };
+        recognition.onresult = (event) => {
+            let transcript = event.results[0][0].transcript;
+            if(transcript.endsWith('.')) transcript = transcript.slice(0, -1);
+            searchInput.value = transcript;
+            if (event.results[0].isFinal) { filterVideos(); stopVisualizer(); }
+        };
+        recognition.onspeechend = () => { recognition.stop(); stopVisualizer(); };
+        recognition.onerror = () => { stopVisualizer(); };
+        async function startVisualizer() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 32; 
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                draw();
+            } catch (err) { console.error("Ошибка микрофона:", err); }
+        }
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            waveElements.forEach((wave, i) => {
+                const value = dataArray[i * 2] || 0;
+                const height = Math.max(4, (value / 255) * 26); 
+                wave.style.height = `${height}px`;
+                wave.style.opacity = 0.5 + (value / 255);
+            });
+        }
+        function stopVisualizer() {
+            voiceBtn.classList.remove('listening');
+            searchInput.placeholder = "Поиск видео или автора...";
+            if (animationId) cancelAnimationFrame(animationId);
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (audioCtx) audioCtx.close();
+            waveElements.forEach(wave => { wave.style.height = '4px'; wave.style.opacity = '1'; });
+        }
+    } else { voiceBtn.style.display = 'none'; }
+
+    function renderVideos(videos) {
+        const videoList = document.getElementById("videoList");
+        if (videos.length === 0) {
+            videoList.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 40px;'>Ничего не найдено...</p>";
+            return;
+        }
+        videoList.innerHTML = videos.map(v => {
+          let mediaHtml = v.thumbnail_url 
+            ? `<img src="${v.thumbnail_url}" alt="thumb"><video src="${v.url}" muted loop preload="none"></video>`
+            : `<video src="${v.url}#t=0.1" muted loop preload="metadata" style="opacity:1; z-index:2;"></video>`;
+          
+          return `
+            <div class="video-card" onclick="location.href='watch.html?v=${v._id}'" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)">
+              <div class="thumb-wrapper">${mediaHtml}</div>
+              <div class="video-info">
+                <h4>${v.title}</h4>
+                <p>Автор: <b>@${v.author_name || 'Аноним'}</b></p>
+                <p style="font-size:12px; margin-top:5px; opacity: 0.7;">👁 ${v.views || 0} просмотров</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+    }
+
+    function playPreview(card) {
+        const video = card.querySelector('video');
+        const img = card.querySelector('img');
+        if (video) {
+            video.style.opacity = "1";
+            if (img) img.style.opacity = "0";
+            video.play().catch(() => {});
+        }
+    }
+
+    function stopPreview(card) {
+        const video = card.querySelector('video');
+        const img = card.querySelector('img');
+        if (video) {
+            video.pause();
+            video.currentTime = 0.1;
+            video.style.opacity = "0";
+            if (img) img.style.opacity = "1";
+        }
+    }
+
+    function checkMiniPlayer() {
+        const data = localStorage.getItem('lastWatched');
+        if (data) {
+            const videoData = JSON.parse(data);
+            const mini = document.getElementById('miniPlayer');
+            const v = document.getElementById('miniVideo');
+            const t = document.getElementById('miniTitle');
+            mini.style.display = 'block';
+            t.innerText = videoData.title;
+            v.src = videoData.url;
+            v.currentTime = videoData.time || 0;
+            v.play().catch(() => { document.getElementById('miniPauseBtn').innerText = '▶'; });
+        }
+    }
+
+    function togglePause(e) {
+        e.stopPropagation();
+        const v = document.getElementById('miniVideo');
+        const btn = document.getElementById('miniPauseBtn');
+        if (v.paused) { v.play(); btn.innerText = '⏸'; } 
+        else { v.pause(); btn.innerText = '▶'; }
+    }
+
+    function nextVideo(e) { e.stopPropagation(); changeVideo(1); }
+    function prevVideo(e) { e.stopPropagation(); changeVideo(-1); }
+
+    function changeVideo(direction) {
+        const data = localStorage.getItem('lastWatched');
+        if (!data || allVideosData.length === 0) return;
+        const current = JSON.parse(data);
+        const currentIndex = allVideosData.findIndex(v => String(v._id) === String(current.id));
+        let nextIndex = currentIndex + direction;
+        if (nextIndex >= allVideosData.length) nextIndex = 0;
+        if (nextIndex < 0) nextIndex = allVideosData.length - 1;
+        const nextVid = allVideosData[nextIndex];
+        const newData = { id: nextVid._id, title: nextVid.title, url: nextVid.url, time: 0 };
+        localStorage.setItem('lastWatched', JSON.stringify(newData));
+        const v = document.getElementById('miniVideo');
+        document.getElementById('miniTitle').innerText = nextVid.title;
+        v.src = nextVid.url;
+        v.play();
+        document.getElementById('miniPauseBtn').innerText = '⏸';
+    }
+
+    function goToVideo() {
+        const data = localStorage.getItem('lastWatched');
+        if (data) {
+            const video = JSON.parse(data);
+            const v = document.getElementById('miniVideo');
+            video.time = v.currentTime;
+            localStorage.setItem('lastWatched', JSON.stringify(video));
+            location.href = `watch.html?v=${video.id}`;
+        }
+    }
+
+    function closeMiniPlayer(e) {
+        e.stopPropagation();
+        localStorage.removeItem('lastWatched');
+        document.getElementById('miniPlayer').style.display = 'none';
+        document.getElementById('miniVideo').pause();
+    }
+
+    const dragPlayer = document.getElementById('miniPlayer');
+    const dragHandle = document.getElementById('miniDraggable');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    function startDrag(e) {
+        isDragging = true;
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+        const rect = dragPlayer.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        dragPlayer.style.transition = 'none';
+        dragPlayer.style.bottom = 'auto';
+        dragPlayer.style.right = 'auto';
+    }
+
+    function moveDrag(e) {
+        if (!isDragging) return;
+        const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        dragPlayer.style.left = (initialLeft + dx) + 'px';
+        dragPlayer.style.top = (initialTop + dy) + 'px';
+    }
+
+    function stopDrag() {
+        if (isDragging) {
+            isDragging = false;
+            dragPlayer.style.transition = 'transform 0.3s ease';
+        }
+    }
+
+    dragHandle.addEventListener('mousedown', startDrag);
+    dragHandle.addEventListener('touchstart', startDrag, {passive: true});
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('touchmove', moveDrag, {passive: false});
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('touchend', stopDrag);
+
+    function checkAuth() {
+      const username = localStorage.getItem('currentUser');
+      const authSection = document.getElementById("authSection");
+      if (username) {
+        let adminBtn = (username === 'MrGarder') ? `<button onclick="location.href='admin.html'" style="border:1px solid gold; color:gold">⚙ Админка</button>` : '';
+        authSection.innerHTML = `
+          <div class="notif-container">
+            <button class="icon-btn" onclick="toggleNotifs()">🔔 <span id="notifBadge" class="notif-badge">0</span></button>
+            <div id="notifMenu" class="notif-dropdown">
+                <div class="notif-header">Уведомления</div>
+                <div id="notifList" class="notif-list"></div>
             </div>
           </div>
-        </div>`;
-    }).join('');
-  }
+          <div class="user-profile">
+            <span class="user-name" onclick="toggleUserMenu()">@${username} ▼</span>
+            <div id="userDropdown" class="dropdown-content">
+                <button onclick="location.href='profile.html'">👤 Мой канал</button>
+                <button onclick="location.href='history.html'">📜 История</button>
+                ${adminBtn}
+                <button onclick="logout()" style="color:#ff6b6b">🚪 Выйти</button>
+            </div>
+          </div>
+          <button class="upload-btn" onclick="location.href='upload.html'">⬆ Загрузить</button>
+        `;
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
+      }
+    }
 
-  function playPreview(card) {
-    const video = card.querySelector('video'), img = card.querySelector('img');
-    if (video) { video.style.opacity="1"; if(img) img.style.opacity="0"; video.play().catch(()=>{}); }
-  }
-  function stopPreview(card) {
-    const video = card.querySelector('video'), img = card.querySelector('img');
-    if (video) { video.pause(); video.currentTime=0.1; video.style.opacity="0"; if(img) img.style.opacity="1"; }
-  }
+    function logout() {
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('lastWatched');
+      location.reload();
+    }
 
-  // VOICE SEARCH
-  const voiceBtn = document.getElementById('voiceSearchBtn');
-  const searchInput = document.getElementById('searchInput');
-  const waveEls = document.querySelectorAll('.wave');
-  let audioCtx, analyser, dataArray, animId, stream;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    const rec = new SR(); rec.lang='ru-RU'; rec.interimResults=true;
-    voiceBtn.onclick = () => voiceBtn.classList.contains('listening') ? rec.stop() : rec.start();
-    rec.onstart = async () => { voiceBtn.classList.add('listening'); searchInput.placeholder="Слушаю..."; searchInput.value=""; await startVis(); };
-    rec.onresult = (e) => { let t=e.results[0][0].transcript; if(t.endsWith('.'))t=t.slice(0,-1); searchInput.value=t; if(e.results[0].isFinal){filterVideos();stopVis();} };
-    rec.onspeechend = () => { rec.stop(); stopVis(); };
-    rec.onerror = stopVis;
-    async function startVis() {
+    async function fetchVideos() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        const src = audioCtx.createMediaStreamSource(stream);
-        analyser = audioCtx.createAnalyser(); analyser.fftSize=32;
-        src.connect(analyser); dataArray = new Uint8Array(analyser.frequencyBinCount);
-        draw();
-      } catch(e){}
+        const res = await fetch(API_URL + '/videos');
+        allVideosData = await res.json();
+        renderVideos(allVideosData);
+        checkMiniPlayer(); 
+      } catch (e) {
+        document.getElementById("videoList").innerHTML = "<p style='grid-column:1/-1; text-align:center; padding: 20px;'>Ошибка сервера.</p>";
+      }
     }
-    function draw() {
-      animId = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-      waveEls.forEach((w,i) => { const v=dataArray[i*2]||0; w.style.height=Math.max(4,(v/255)*24)+'px'; });
+
+    function toggleUserMenu() {
+        const menu = document.getElementById("userDropdown");
+        if(menu) menu.style.display = (menu.style.display === "block") ? "none" : "block";
     }
-    function stopVis() {
-      voiceBtn.classList.remove('listening'); searchInput.placeholder="Поиск видео или автора...";
-      if(animId) cancelAnimationFrame(animId);
-      if(stream) stream.getTracks().forEach(t=>t.stop());
-      if(audioCtx) audioCtx.close();
-      waveEls.forEach(w=>{ w.style.height='4px'; });
+
+    window.onclick = function(event) {
+        if (!event.target.closest('.user-profile')) {
+            const d = document.getElementById("userDropdown");
+            if(d) d.style.display = "none";
+        }
+        if (!event.target.closest('.notif-container')) {
+            const n = document.getElementById("notifMenu");
+            if(n) n.style.display = "none";
+        }
     }
-  } else { voiceBtn.style.display='none'; }
 
-  // AUTH
-  function checkAuth() {
-    const username = localStorage.getItem('currentUser');
-    const sec = document.getElementById('authSection');
-    if (!username) return;
-    const adminBtn = username==='MrGarder' ? `<button onclick="location.href='admin.html'" style="color:gold">⚙ Админка</button>` : '';
-    sec.innerHTML = `
-      <div class="notif-container">
-        <button class="icon-btn" onclick="toggleNotifs()">🔔 <span id="notifBadge" class="notif-badge">0</span></button>
-        <div id="notifMenu" class="notif-dropdown">
-          <div class="notif-header">Уведомления</div>
-          <div id="notifList" class="notif-list"></div>
-        </div>
-      </div>
-      <div class="user-profile">
-        <span class="user-name" onclick="toggleUserMenu()">@${username} ▾</span>
-        <div id="userDropdown" class="dropdown-content">
-          <button onclick="location.href='profile.html'">👤 Мой канал</button>
-          <button onclick="location.href='history.html'">📜 История</button>
-          ${adminBtn}
-          <button onclick="logout()" style="color:var(--danger)">🚪 Выйти</button>
-        </div>
-      </div>
-      <button class="upload-btn" onclick="location.href='upload.html'">⬆ <span class="btn-label">Загрузить</span></button>`;
-    loadNotifications();
-    setInterval(loadNotifications, 30000);
-  }
-  function logout() { localStorage.removeItem('currentUser'); localStorage.removeItem('lastWatched'); location.reload(); }
-  function toggleUserMenu() { const m=document.getElementById('userDropdown'); if(m) m.style.display=(m.style.display==='block')?'none':'block'; }
-
-  // NOTIFICATIONS
-  async function loadNotifications() {
-    const user = localStorage.getItem('currentUser'); if (!user) return;
-    try {
-      const res = await fetch(`${API_URL}/notifications/${user}`);
-      const notes = await res.json();
-      const badge = document.getElementById('notifBadge');
-      const list = document.getElementById('notifList');
-      const unread = notes.filter(n=>!n.read).length;
-      badge.innerText=unread; badge.style.display=unread>0?'block':'none';
-      list.innerHTML = notes.length ? notes.map(n=>`<div class="notif-item" onclick="location.href='watch.html?v=${n.video_id}'"><b>@${n.from_user}</b> ${n.text}</div>`).join('') : '<div class="notif-empty">Пока нет уведомлений</div>';
-    } catch(e){}
-  }
-  function toggleNotifs() {
-    const m = document.getElementById('notifMenu');
-    const vis = m.style.display==='block';
-    m.style.display = vis ? 'none' : 'block';
-    if (!vis) {
-      const user = localStorage.getItem('currentUser');
-      fetch(`${API_URL}/notifications/read`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user})})
-        .then(()=>{ const b=document.getElementById('notifBadge'); if(b) b.style.display='none'; });
-    }
-  }
-
-  // MINI PLAYER
-  function checkMiniPlayer() {
-    const data = localStorage.getItem('lastWatched'); if (!data) return;
-    const vd = JSON.parse(data);
-    const mini = document.getElementById('miniPlayer');
-    const v = document.getElementById('miniVideo');
-    mini.style.display='block'; document.getElementById('miniTitle').innerText=vd.title;
-    v.src=vd.url; v.currentTime=vd.time||0; v.play().catch(()=>{ document.getElementById('miniPauseBtn').innerText='▶'; });
-  }
-  function togglePause(e) { e.stopPropagation(); const v=document.getElementById('miniVideo'),b=document.getElementById('miniPauseBtn'); if(v.paused){v.play();b.innerText='⏸';}else{v.pause();b.innerText='▶';} }
-  function nextVideo(e){e.stopPropagation();changeVideo(1);}
-  function prevVideo(e){e.stopPropagation();changeVideo(-1);}
-  function changeVideo(dir) {
-    const data=localStorage.getItem('lastWatched'); if(!data||!allVideosData.length)return;
-    const cur=JSON.parse(data); let idx=allVideosData.findIndex(v=>String(v._id)===String(cur.id))+dir;
-    if(idx>=allVideosData.length)idx=0; if(idx<0)idx=allVideosData.length-1;
-    const nv=allVideosData[idx]; const nd={id:nv._id,title:nv.title,url:nv.url,time:0};
-    localStorage.setItem('lastWatched',JSON.stringify(nd));
-    const v=document.getElementById('miniVideo'); document.getElementById('miniTitle').innerText=nv.title;
-    v.src=nv.url; v.play(); document.getElementById('miniPauseBtn').innerText='⏸';
-  }
-  function goToVideo() { const data=localStorage.getItem('lastWatched'); if(data){ const vd=JSON.parse(data); vd.time=document.getElementById('miniVideo').currentTime; localStorage.setItem('lastWatched',JSON.stringify(vd)); location.href=`watch.html?v=${vd.id}`; } }
-  function closeMiniPlayer(e) { e.stopPropagation(); localStorage.removeItem('lastWatched'); document.getElementById('miniPlayer').style.display='none'; document.getElementById('miniVideo').pause(); }
-
-  // DRAG MINI PLAYER
-  const dragPlayer=document.getElementById('miniPlayer'), dragHandle=document.getElementById('miniDraggable');
-  let isDragging=false, startX, startY, initL, initT;
-  function startDrag(e){ isDragging=true; const cx=e.type==='touchstart'?e.touches[0].clientX:e.clientX, cy=e.type==='touchstart'?e.touches[0].clientY:e.clientY; startX=cx;startY=cy; const r=dragPlayer.getBoundingClientRect(); initL=r.left;initT=r.top; dragPlayer.style.transition='none'; dragPlayer.style.bottom='auto';dragPlayer.style.right='auto'; }
-  function moveDrag(e){ if(!isDragging)return; const cx=e.type==='touchmove'?e.touches[0].clientX:e.clientX, cy=e.type==='touchmove'?e.touches[0].clientY:e.clientY; dragPlayer.style.left=(initL+cx-startX)+'px'; dragPlayer.style.top=(initT+cy-startY)+'px'; }
-  function stopDrag(){ if(isDragging){isDragging=false;dragPlayer.style.transition='transform 0.3s ease';} }
-  dragHandle.addEventListener('mousedown',startDrag);
-  dragHandle.addEventListener('touchstart',startDrag,{passive:true});
-  document.addEventListener('mousemove',moveDrag);
-  document.addEventListener('touchmove',moveDrag,{passive:false});
-  document.addEventListener('mouseup',stopDrag);
-  document.addEventListener('touchend',stopDrag);
-
-  // CLOSE DROPDOWNS ON OUTSIDE CLICK
-  window.onclick = (e) => {
-    if (!e.target.closest('.user-profile')){ const d=document.getElementById('userDropdown'); if(d) d.style.display='none'; }
-    if (!e.target.closest('.notif-container')){ const n=document.getElementById('notifMenu'); if(n) n.style.display='none'; }
-  };
-
-  // FETCH
-  async function fetchVideos() {
-    try {
-      const res = await fetch(API_URL+'/videos');
-      allVideosData = await res.json();
-      renderVideos(allVideosData);
-      checkMiniPlayer();
-    } catch(e) {
-      document.getElementById("videoList").innerHTML="<p style='grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;'>Ошибка сервера.</p>";
-    }
-  }
-
-  window.onload = () => { checkAuth(); fetchVideos(); };
-</script>
+    window.onload = () => { checkAuth(); fetchVideos(); };
+  </script>
 </body>
 </html>
