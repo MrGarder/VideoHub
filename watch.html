@@ -2,95 +2,143 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>VideoHub — Просмотр</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideoHub — Главная</title>
+  
   <link rel="icon" type="image/png" href="uploads/IMG_5231.PNG">
+  <link rel="shortcut icon" href="uploads/IMG_5231.PNG" type="image/x-icon">
+  <link rel="apple-touch-icon" href="uploads/IMG_5231.PNG">
 
   <style>
-    :root{
-      --bg1: #1e1e2f;
-      --glass: rgba(255,255,255,0.04);
+    :root {
+      --bg1: #11111a;
+      --accent: #6b5cff;
       --text: #fff;
-      --accent: linear-gradient(135deg, #6b5cff, #8b5cf6);
-      --accent-solid: #6b5cff;
-      --muted: rgba(255,255,255,0.7);
+      --card-bg: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
     }
-    html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background: linear-gradient(135deg,#11111a,#1b1630);color:var(--text);-webkit-font-smoothing:antialiased}
+
+    /* Прелоадер */
+    #preloader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #11111a; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 10000;
+    }
+    .loader-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
+
+    body { margin: 0; background: var(--bg1); color: var(--text); font-family: sans-serif; }
     
-    .logo {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -1px;
-      cursor: pointer;
-      background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px); sticky: top; z-index: 100;
     }
-    .logo span { color: #8b5cf6; -webkit-text-fill-color: #8b5cf6; }
 
-    .topbar{display:flex;align-items:center;justify-content: space-between;padding:12px 20px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:20;backdrop-filter: blur(10px);}
-    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .videos { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 
-    .back-btn {
-      background: rgba(140,70,255,.15); border: 1px solid rgba(140,70,255,.3);
-      color: #dcd1ff; padding: 6px 14px; margin-right: 12px; border-radius: 10px;
-      font-size: 14px; cursor: pointer; transition: .25s;
-    }
-    .back-btn:hover { background: rgba(140,70,255,.3); }
-
-    .noti-wrapper { position: relative; cursor: pointer; }
-    #notiBtn { background: none; border: none; font-size: 20px; color: var(--text); cursor: pointer; position: relative; }
-    #notiCount { position: absolute; top: -5px; right: -5px; background: #ff4e4e; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; display: none; }
-    .noti-dropdown { 
-        position: absolute; top: 40px; right: 0; width: 280px; background: #252538; 
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: none; 
-        max-height: 400px; overflow-y: auto; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .noti-item { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; transition: 0.2s; }
-    .noti-item:hover { background: rgba(255,255,255,0.05); }
-    .noti-item.unread { border-left: 3px solid #8b5cf6; background: rgba(107, 92, 255, 0.05); }
-
-    .container{display:flex;gap:24px;padding:20px;max-width:1400px;margin:0 auto}
-    .player-column{flex:2.5;min-width:0}
+    /* СТИЛИ ДЛЯ КАРТОЧКИ И АВАТАРКИ */
+    .video-card { background: var(--card-bg); border-radius: 12px; overflow: hidden; transition: 0.3s; cursor: pointer; border: 1px solid transparent; }
+    .video-card:hover { border-color: var(--accent); transform: translateY(-3px); }
     
-    .side-column{
-        flex: 1;
-        max-width: 400px;
-        background: rgba(255,255,255,0.02);
-        border-radius: 16px;
-        padding: 16px;
-        border: 1px solid rgba(255,255,255,0.05);
-        height: fit-content;
-        position: sticky;
-        top: 85px;
-    }
-    #recommendedList {
-        max-height: 75vh;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-    #recommendedList::-webkit-scrollbar { width: 4px; }
-    #recommendedList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-    video{width:100%;border-radius:16px;background:black; aspect-ratio: 16/9; outline: none; box-shadow: 0 20px 50px rgba(0,0,0,0.6);}
-    .title{margin-top:16px;font-size:24px;font-weight:700}
-
-    .video-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08)}
-    .channel-left{display:flex;gap:12px;align-items:center;min-width:0; cursor: pointer;}
+    .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
+    .thumb-wrapper img, .thumb-wrapper video { width: 100%; height: 100%; object-fit: cover; }
     
-    .avatar{
-        width:44px; height:44px; border-radius:50%; 
-        background:linear-gradient(135deg,#8b5cf6,#5143ff); 
-        flex-shrink:0; display: flex; align-items: center; justify-content: center; 
-        font-weight: bold; font-size: 18px; 
-        background-size: cover; background-position: center;
-        border: 1px solid rgba(255,255,255,0.1);
+    .video-info { padding: 12px; display: flex; gap: 12px; }
+    
+    /* Аватарка автора в списке */
+    .author-avatar {
+        width: 36px; height: 36px; border-radius: 50%; 
+        object-fit: cover; flex-shrink: 0; border: 1px solid var(--border);
+        background: #333;
     }
-
-    .channel-info{min-width:0}
-    .channel-info .name{font-weight:700;font-size:16px;}
+    
+    .info-text { flex: 1; overflow: hidden; }
+    .info-text h4 { margin: 0 0 5px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .info-text p { margin: 0; font-size: 13px; color: #aaa; }
+    
+    /* Сайдбар */
+    .sidebar { position: fixed; left: -250px; top: 60px; width: 230px; height: 100%; background: #1a1a24; transition: 0.3s; z-index: 99; padding-top: 20px; }
+    .sidebar.open { left: 0; }
+    .sidebar a { display: block; padding: 12px 20px; color: #fff; text-decoration: none; }
+    
+    /* Поиск */
+    .search-box { flex: 1; max-width: 400px; margin: 0 20px; }
+    .search-box input { width: 100%; padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); background: #000; color: #fff; }
   </style>
 </head>
 <body>
-  </body>
+
+  <div id="preloader">
+      <img src="uploads/IMG_5231.PNG" class="loader-photo">
+      <p>Загрузка VideoHub...</p>
+  </div>
+
+  <header class="topbar">
+    <button onclick="document.getElementById('sidebar').classList.toggle('open')" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">☰</button>
+    <div style="font-weight:bold; font-size:20px; cursor:pointer;" onclick="location.href='index.html'">VideoHub</div>
+    <div class="search-box"><input type="text" placeholder="Поиск..." oninput="filterVideos()"></div>
+    <div id="authSection"></div>
+  </header>
+
+  <aside id="sidebar" class="sidebar">
+    <a href="index.html">🏠 Главная</a>
+    <a href="profile.html">👤 Профиль</a>
+    <a href="upload.html">⬆ Загрузить</a>
+  </aside>
+
+  <main id="videoList" class="videos"></main>
+
+  <script>
+    const API_URL = "https://videohub-c48i.onrender.com";
+    let allVideos = [];
+
+    // Убираем прелоадер
+    window.onload = () => {
+        setTimeout(() => { document.getElementById('preloader').style.display='none'; }, 1000);
+        fetchVideos();
+        checkAuth();
+    };
+
+    async function fetchVideos() {
+        try {
+            const res = await fetch(`${API_URL}/videos`);
+            allVideos = await res.json();
+            renderVideos(allVideos);
+        } catch (e) { console.error("Ошибка загрузки:", e); }
+    }
+
+    function renderVideos(list) {
+        const container = document.getElementById('videoList');
+        container.innerHTML = list.map(v => {
+            // Логика аватарки: если у автора есть фото - ставим его, если нет - наше лого
+            const authorImg = v.author_avatar ? v.author_avatar : 'uploads/IMG_5231.PNG';
+            
+            return `
+            <div class="video-card" onclick="location.href='watch.html?v=${v._id}'">
+                <div class="thumb-wrapper">
+                    <img src="${v.thumbnail_url || 'uploads/IMG_5231.PNG'}">
+                </div>
+                <div class="video-info">
+                    <img src="${authorImg}" class="author-avatar" onerror="this.src='uploads/IMG_5231.PNG'">
+                    <div class="info-text">
+                        <h4>${v.title}</h4>
+                        <p>@${v.author_name || 'Аноним'}</p>
+                        <p style="font-size:11px; opacity:0.6;">${v.views || 0} просмотров</p>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function checkAuth() {
+        const user = localStorage.getItem('currentUser');
+        const auth = document.getElementById('authSection');
+        if(user) {
+            auth.innerHTML = `<span style="color:var(--accent); cursor:pointer;" onclick="location.href='profile.html'">@${user}</span>`;
+        } else {
+            auth.innerHTML = `<button onclick="location.href='auth.html'">Войти</button>`;
+        }
+    }
+  </script>
+</body>
 </html>
