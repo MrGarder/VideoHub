@@ -29,7 +29,6 @@
     }
     .loader-content { text-align: center; }
     
-    /* Круглое место под твое фото */
     .loader-photo { 
       width: 120px; height: 120px;
       border-radius: 50%;
@@ -146,10 +145,12 @@
     .video-info { padding: 15px; }
     .video-info h4 { margin: 0 0 10px 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     
-    /* СТИЛЬ АВАТАРКИ В КАРТОЧКЕ */
-    .author-container { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    /* СТИЛЬ ДЛЯ АВАТАРКИ АВТОРА */
+    .author-block { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
     .author-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent); }
-    .video-info p { margin: 0; font-size: 13px; color: #aaa; }
+    .author-name-text { font-size: 13px; color: #aaa; }
+
+    .video-info p.stats { margin: 0; font-size: 12px; color: #777; }
 
     .user-profile { position: relative; display: flex; align-items: center; gap: 10px; }
     .user-name { font-weight: 500; font-size: 14px; color: #8e82ff; cursor: pointer; padding: 5px; border-radius: 8px; transition: 0.2s; }
@@ -421,6 +422,7 @@
         }
     } else { voiceBtn.style.display = 'none'; }
 
+    // ОБНОВЛЕННАЯ ФУНКЦИЯ RENDERING С АВАТАРКАМИ АВТОРОВ
     function renderVideos(videos) {
         const videoList = document.getElementById("videoList");
         if (videos.length === 0) {
@@ -432,19 +434,19 @@
             ? `<img src="${v.thumbnail_url}" alt="thumb"><video src="${v.url}" muted loop preload="none"></video>`
             : `<video src="${v.url}#t=0.1" muted loop preload="metadata" style="opacity:1; z-index:2;"></video>`;
           
-          // Путь к аватарке автора или заглушка
-          const avatarSrc = v.author_avatar ? v.author_avatar : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+          // Путь к аватарке автора (если нет - ставим дефолтную)
+          let authorAvatarPath = v.author_avatar || `uploads/IMG_5231.PNG`;
 
           return `
             <div class="video-card" onclick="location.href='watch.html?v=${v._id}'" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)">
               <div class="thumb-wrapper">${mediaHtml}</div>
               <div class="video-info">
                 <h4>${v.title}</h4>
-                <div class="author-container">
-                    <img src="${avatarSrc}" class="author-avatar" alt="ava">
-                    <p><b>@${v.author_name || 'Аноним'}</b></p>
+                <div class="author-block">
+                  <img src="${authorAvatarPath}" class="author-avatar" onerror="this.src='uploads/IMG_5231.PNG'">
+                  <span class="author-name-text">@${v.author_name || 'Аноним'}</span>
                 </div>
-                <p style="font-size:12px; margin-top:5px; opacity: 0.7;">👁 ${v.views || 0} просмотров</p>
+                <p class="stats">👁 ${v.views || 0} просмотров</p>
               </div>
             </div>
           `;
