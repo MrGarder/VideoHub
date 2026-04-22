@@ -4,9 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>VideoHub — Просмотр</title>
-  
   <link rel="icon" type="image/png" href="uploads/IMG_5231.PNG">
-  <link rel="shortcut icon" href="uploads/IMG_5231.PNG" type="image/x-icon">
 
   <style>
     :root {
@@ -15,76 +13,60 @@
       --text: #fff;
       --glass: rgba(255,255,255,0.05);
       --border: rgba(255,255,255,0.1);
+      --danger: #ff4e4e;
     }
 
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font-family: 'Inter', sans-serif; overflow-x: hidden;
-    }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+    .topbar { display: flex; align-items: center; padding: 12px 20px; background: var(--glass); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); sticky: top; z-index: 100; }
+    .back-btn { background: var(--accent); border: none; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; margin-right: 20px; }
 
-    .topbar {
-      display: flex; align-items: center; padding: 12px 20px;
-      background: var(--glass); backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
-    }
-
-    .back-btn {
-      background: var(--accent); border: none; color: white;
-      padding: 8px 15px; border-radius: 8px; cursor: pointer; margin-right: 20px;
-    }
-
-    .container {
-      display: flex; gap: 24px; padding: 20px; max-width: 1400px; margin: 0 auto;
-    }
-
+    .container { display: flex; gap: 24px; padding: 20px; max-width: 1400px; margin: 0 auto; }
     .player-column { flex: 2.5; min-width: 0; }
+    .video-wrapper video { width: 100%; border-radius: 16px; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+    .video-info { margin-top: 20px; }
+    .video-title { font-size: 24px; font-weight: 700; }
+
+    /* БЛОК ВЗАИМОДЕЙСТВИЯ (Лайки, Подписка) */
+    .actions-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    }
     
-    .video-wrapper video {
-      width: 100%; border-radius: 16px; background: #000;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5); outline: none;
+    .author-info { display: flex; align-items: center; gap: 12px; }
+    .author-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent); }
+    
+    .subscribe-btn {
+      background: #fff; color: #000; border: none; padding: 10px 20px;
+      border-radius: 20px; font-weight: 600; cursor: pointer; transition: 0.3s;
     }
+    .subscribe-btn.active { background: var(--glass); color: #fff; border: 1px solid var(--border); }
 
-    .video-info { margin-top: 15px; }
-    .video-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-
-    .author-block {
-      display: flex; align-items: center; gap: 12px; margin-top: 15px;
-      padding: 15px; background: var(--glass); border-radius: 12px;
+    .like-dislike-btns {
+      display: flex; background: var(--glass); border-radius: 20px;
+      overflow: hidden; border: 1px solid var(--border);
     }
-
-    /* Аватарка автора */
-    .author-avatar {
-      width: 45px; height: 45px; border-radius: 50%;
-      object-fit: cover; border: 1px solid var(--accent);
-      background: #333;
+    .btn-action {
+      background: none; border: none; color: #fff; padding: 10px 18px;
+      cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;
     }
-
-    .author-details b { font-size: 16px; display: block; }
-    .author-details span { color: #aaa; font-size: 13px; }
+    .btn-action:hover { background: rgba(255,255,255,0.1); }
+    .btn-action.active { color: var(--accent); }
+    .btn-action:first-child { border-right: 1px solid var(--border); }
 
     .side-column { flex: 1; display: flex; flex-direction: column; gap: 15px; }
-    .side-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
-
-    .rec-card {
-      display: flex; gap: 10px; cursor: pointer; transition: 0.2s;
-      padding: 5px; border-radius: 8px;
-    }
+    .rec-card { display: flex; gap: 10px; cursor: pointer; padding: 5px; border-radius: 8px; }
     .rec-card:hover { background: var(--glass); }
     .rec-thumb { width: 140px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; }
-    .rec-info h5 { margin: 0; font-size: 14px; color: #fff; }
-    .rec-info p { margin: 3px 0 0; font-size: 12px; color: #aaa; }
 
-    @media (max-width: 900px) {
-      .container { flex-direction: column; }
-      .side-column { width: 100%; }
-    }
+    @media (max-width: 900px) { .container { flex-direction: column; } }
   </style>
 </head>
 <body>
 
   <header class="topbar">
     <button class="back-btn" onclick="location.href='index.html'">← Назад</button>
-    <div style="font-weight:bold; font-size:20px;">Video<span>Hub</span></div>
+    <div style="font-weight:bold; font-size:20px;">VideoHub</div>
   </header>
 
   <main class="container">
@@ -94,21 +76,32 @@
       </div>
       
       <div class="video-info">
-        <div class="video-title" id="vTitle">Загрузка названия...</div>
-        <div id="vViews" style="color:#aaa; font-size:14px;">0 просмотров</div>
+        <div class="video-title" id="vTitle">Загрузка...</div>
+        <div id="vViews" style="color:#aaa; font-size:14px; margin-top:5px;">0 просмотров</div>
         
-        <div class="author-block">
-          <img id="vAvatar" src="uploads/IMG_5231.PNG" class="author-avatar" onerror="this.src='uploads/IMG_5231.PNG'">
-          <div class="author-details">
-            <b id="vAuthor">Загрузка...</b>
-            <span id="vDate">Дата не указана</span>
+        <div class="actions-bar">
+          <div class="author-info">
+            <img id="vAvatar" src="uploads/IMG_5231.PNG" class="author-avatar" onerror="this.src='uploads/IMG_5231.PNG'">
+            <div>
+              <b id="vAuthor">Загрузка...</b>
+              <div id="subsCount" style="font-size:12px; color:#aaa;">0 подписчиков</div>
+            </div>
+            <button id="subBtn" class="subscribe-btn" onclick="toggleSub()">Подписаться</button>
+          </div>
+
+          <div class="like-dislike-btns">
+            <button id="likeBtn" class="btn-action" onclick="handleLike('like')">
+              👍 <span id="likesCount">0</span>
+            </button>
+            <button id="dislikeBtn" class="btn-action" onclick="handleLike('dislike')">
+              👎
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <div class="side-column">
-      <div class="side-title">Похожие видео</div>
       <div id="recommendations"></div>
     </div>
   </main>
@@ -117,79 +110,73 @@
     const API_URL = "https://videohub-c48i.onrender.com";
     const urlParams = new URLSearchParams(window.location.search);
     const videoId = urlParams.get('v');
+    const currentUser = localStorage.getItem('currentUser');
 
     async function loadVideo() {
       if (!videoId) return (location.href = 'index.html');
-
       try {
-        // Получаем данные конкретного видео
         const res = await fetch(`${API_URL}/videos/${videoId}`);
         const video = await res.json();
 
-        if (!video) throw new Error("Видео не найдено");
-
-        // Ставим данные в плеер
         document.getElementById('mainVideo').src = video.url;
         document.getElementById('vTitle').innerText = video.title;
         document.getElementById('vAuthor').innerText = "@" + (video.author_name || "Аноним");
         document.getElementById('vViews').innerText = `${video.views || 0} просмотров`;
+        document.getElementById('likesCount').innerText = video.likes || 0;
         
-        // Установка аватарки автора (если нет — заглушка)
-        if (video.author_avatar) {
-            document.getElementById('vAvatar').src = video.author_avatar;
-        }
-
-        // Обновляем заголовок вкладки под видео
-        document.title = `${video.title} — VideoHub`;
-
-        // Сохраняем в историю (для мини-плеера на главной)
-        localStorage.setItem('lastWatched', JSON.stringify({
-            id: video._id,
-            title: video.title,
-            url: video.url,
-            time: 0
-        }));
+        if (video.author_avatar) document.getElementById('vAvatar').src = video.author_avatar;
 
         loadRecommendations();
-      } catch (err) {
-        console.error(err);
-        alert("Ошибка при загрузке видео");
+        updateViews();
+      } catch (err) { console.error(err); }
+    }
+
+    async function updateViews() {
+        fetch(`${API_URL}/videos/${videoId}/view`, { method: 'POST' });
+    }
+
+    async function handleLike(type) {
+      if (!currentUser) return alert("Войдите, чтобы ставить лайки!");
+      
+      // Визуальный эффект сразу
+      const lBtn = document.getElementById('likeBtn');
+      const count = document.getElementById('likesCount');
+      
+      if (type === 'like') {
+          lBtn.classList.toggle('active');
+          let currentLikes = parseInt(count.innerText);
+          count.innerText = lBtn.classList.contains('active') ? currentLikes + 1 : currentLikes - 1;
       }
+
+      // Отправка на бэкенд
+      await fetch(`${API_URL}/videos/${videoId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser, type: type })
+      });
+    }
+
+    function toggleSub() {
+      if (!currentUser) return alert("Войдите, чтобы подписаться!");
+      const btn = document.getElementById('subBtn');
+      btn.classList.toggle('active');
+      btn.innerText = btn.classList.contains('active') ? "Вы подписаны" : "Подписаться";
     }
 
     async function loadRecommendations() {
-      try {
-        const res = await fetch(`${API_URL}/videos`);
-        const all = await res.json();
-        const container = document.getElementById('recommendations');
-        
-        // Фильтруем текущее видео из списка
-        const filtered = all.filter(v => v._id !== videoId).slice(0, 10);
-
-        container.innerHTML = filtered.map(v => `
-          <div class="rec-card" onclick="location.href='watch.html?v=${v._id}'">
-            <img src="${v.thumbnail_url || 'uploads/IMG_5231.PNG'}" class="rec-thumb" onerror="this.src='uploads/IMG_5231.PNG'">
-            <div class="rec-info">
-              <h5>${v.title}</h5>
-              <p>@${v.author_name || 'Автор'}</p>
-              <p style="font-size:11px;">👁 ${v.views || 0}</p>
-            </div>
+      const res = await fetch(`${API_URL}/videos`);
+      const all = await res.json();
+      const container = document.getElementById('recommendations');
+      container.innerHTML = all.filter(v => v._id !== videoId).slice(0, 8).map(v => `
+        <div class="rec-card" onclick="location.href='watch.html?v=${v._id}'">
+          <img src="${v.thumbnail_url || 'uploads/IMG_5231.PNG'}" class="rec-thumb">
+          <div class="rec-info">
+            <h5 style="margin:0; font-size:14px;">${v.title}</h5>
+            <p style="margin:3px 0; font-size:12px; color:#aaa;">@${v.author_name}</p>
           </div>
-        `).join('');
-      } catch (e) {
-        console.error("Ошибка рекомендаций", e);
-      }
+        </div>
+      `).join('');
     }
-
-    // Следим за временем просмотра для сохранения позиции
-    const videoElem = document.getElementById('mainVideo');
-    videoElem.ontimeupdate = () => {
-        const data = JSON.parse(localStorage.getItem('lastWatched'));
-        if (data) {
-            data.time = videoElem.currentTime;
-            localStorage.setItem('lastWatched', JSON.stringify(data));
-        }
-    };
 
     window.onload = loadVideo;
   </script>
