@@ -196,7 +196,6 @@
   </div>
 
   <script>
-    const API_URL = "https://videohub-c48i.onrender.com";
     let allVideosData = [];
     let searchTimeout;
     
@@ -204,7 +203,7 @@
     const menuBtn = document.getElementById("menuBtn");
     menuBtn.onclick = () => sidebar.classList.toggle("open");
 
-    // Оптимизация поиска, чтобы сервер не ложился от каждого введенного символа
+    // Оптимизация поиска
     function debounceFilter() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
@@ -212,15 +211,15 @@
             if (query.length > 0) {
                 searchYouTube(query);
             } else {
-                renderVideos(allVideosData); // Если поиск пустой, возвращаем тренды
+                renderVideos(allVideosData); // Если поиск пустой, возвращаем полный список видео
             }
         }, 500);
     }
 
-    // Поиск по YouTube через твой сервер
+    // Поиск по видео
     async function searchYouTube(query) {
         try {
-            const res = await fetch(`${API_URL}/api/youtube/search?query=${encodeURIComponent(query)}`);
+            const res = await fetch(`/api/youtube/search?query=${encodeURIComponent(query)}`);
             const data = await res.json();
             renderVideos(data);
         } catch (err) {
@@ -233,7 +232,7 @@
         const user = localStorage.getItem('currentUser');
         if (!user) return;
         try {
-            const res = await fetch(`${API_URL}/notifications/${user}`);
+            const res = await fetch(`/notifications/${user}`);
             const notes = await res.json();
             const badge = document.getElementById('notifBadge');
             const list = document.getElementById('notifList');
@@ -265,7 +264,7 @@
         menu.style.display = isVisible ? 'none' : 'block';
         if (!isVisible) {
             const user = localStorage.getItem('currentUser');
-            fetch(`${API_URL}/notifications/read`, {
+            fetch(`/notifications/read`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ username: user })
@@ -339,22 +338,24 @@
         }
     } else { voiceBtn.style.display = 'none'; }
 
-    // --- ОТРИСОВКА ВИДЕО ---
+    // --- ОТРИСОВКА ВИДЕО (БЕСКОНЕЧНЫЙ ВЫВОД) ---
     function renderVideos(videos) {
         const videoList = document.getElementById("videoList");
         if (!videos || videos.length === 0) {
             videoList.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 40px;'>Ничего не найдено...</p>";
             return;
         }
+        // Выводим все видео без использования метода .slice()
         videoList.innerHTML = videos.map(v => {
+          const id = v._id || v.id;
           return `
-            <div class="video-card" onclick="location.href='watch.html?v=${v._id}'">
+            <div class="video-card" onclick="location.href='watch.html?v=${id}'">
               <div class="thumb-wrapper">
-                <img src="${v.thumbnail_url}" alt="thumb">
+                <img src="${v.thumbnail_url || 'https://via.placeholder.com/640x360/111/444?text=Video'}" alt="thumb">
               </div>
               <div class="video-info">
-                <h4>${v.title}</h4>
-                <p>Автор: <b>@${v.author_name || 'Аноним'}</b></p>
+                <h4>${v.title || 'Без названия'}</h4>
+                <p onclick="event.stopPropagation(); location.href='profile.html?user=${v.author_name}'">Автор: <b>@${v.author_name || 'Аноним'}</b></p>
                 <p style="font-size:12px; margin-top:5px; opacity: 0.7;">👁 ${v.views || 0}</p>
               </div>
             </div>
@@ -373,7 +374,6 @@
             
             mini.style.display = 'block';
             t.innerText = videoData.title;
-            // Корректно передаем URL в iframe с флагом autoplay
             v.src = `${videoData.url}?autoplay=1`;
         }
     }
@@ -429,16 +429,22 @@
       location.reload();
     }
 
-    // Загрузка трендов с YouTube при старте страницы
+    // Загрузка ВСЕХ видео и трендов с YouTube при старте страницы
     async function fetchVideos() {
       try {
-        const res = await fetch(`${API_URL}/api/youtube/trends`);
-        allVideosData = await res.json();
+        const [localRes, trendRes] = await Promise.all([
+           fetch('/videos').then(r => r.ok ? r.json() : []),
+           fetch('/api/youtube/trends').then(r => r.ok ? r.json() : [])
+        ]);
+        
+        // Сливаем все локальные видео сайта и тренды YouTube в единый поток
+        allVideosData = [...localRes, ...trendRes];
+        
         renderVideos(allVideosData);
         checkMiniPlayer(); 
       } catch (e) {
         console.error(e);
-        document.getElementById("videoList").innerHTML = "<p style='grid-column:1/-1; text-align:center; padding: 20px;'>Ошибка загрузки трендов.</p>";
+        document.getElementById("videoList").innerHTML = "<p style='grid-column:1/-1; text-align:center; padding: 20px;'>Ошибка загрузки видео.</p>";
       }
     }
 
