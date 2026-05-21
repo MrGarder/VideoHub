@@ -106,9 +106,12 @@
     .desc{margin-top:14px;background:rgba(255,255,255,0.04);padding:16px;border-radius:12px;font-size:14px;line-height:1.6; white-space: pre-wrap; color: #ddd;}
     
     .comments{margin-top:30px}
+    
+    /* ИСПРАВЛЕНО: Современный Flexbox для формы, чтобы ничего не ломалось */
+    .comment-form { display: flex; flex-direction: column; gap: 12px; }
     .comment-form textarea{width:100%;min-height:40px;padding:12px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;transition:0.3s;font-size:15px;}
     .comment-form textarea:focus{border-bottom:2px solid #8b5cf6}
-    .send-btn{margin-top:12px;padding:10px 20px;border-radius:20px;border:none;background:var(--accent-solid);color:white;cursor:pointer;font-weight: 600; float:right; transition: 0.2s;}
+    .send-btn{padding:10px 20px;border-radius:20px;border:none;background:var(--accent-solid);color:white;cursor:pointer;font-weight: 600; align-self: flex-end; transition: 0.2s;}
     .send-btn:hover { filter: brightness(1.2); }
 
     .reply-btn, .delete-btn { background: none; border: none; color: #8b5cf6; font-size: 12px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: 600; margin-right: 15px; }
@@ -184,7 +187,7 @@
         <textarea id="commentInput" placeholder="Оставьте комментарий..."></textarea>
         <button class="send-btn">Отправить</button>
       </div>
-      <div id="commentsList" style="margin-top:60px; clear: both;"></div>
+      <div id="commentsList" style="margin-top:20px; clear: both;"></div>
     </div>
   </div>
 
@@ -219,16 +222,16 @@ async function initWatchPage() {
     localStorage.removeItem('lastWatched');
 
     try {
-        // Теперь этот блок сработает идеально, так как id="player-container" добавлен в HTML
         const playerContainer = document.getElementById('player-container');
         if (playerContainer) {
+            /* ИСПРАВЛЕНО: Закрывающий тег iframe теперь валидный */
             playerContainer.innerHTML = `
                 <iframe 
                     src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" 
                     frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                     allowfullscreen>
-                 iframe>
+                </iframe>
             `;
         }
 
