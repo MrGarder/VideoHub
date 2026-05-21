@@ -377,24 +377,57 @@ function renderRecommended(videos, currentId) {
 }
 
 async function loadComments() {
-    const res = await fetch(`/videos/${videoId}/comments`);
-    const comments = await res.json();
     const list = document.getElementById('commentsList');
     if (!list) return;
-    
-    if (comments.length === 0) {
-        list.innerHTML = '<p style="color: #888;">Нет комментариев. Будьте первым!</p>';
-        return;
-    }
-    list.innerHTML = comments.map(c => `
-        <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                <b style="color: var(--accent); cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
-                <small style="color: #666;">${formatDate(c.created_at)}</small>
+
+    // Показываем индикатор загрузки
+    list.innerHTML = '<p style="color: #888;">Загрузка комментариев...</p>';
+
+    try {
+        // Запрашиваем и локальные, и YouTube комментарии параллельно
+        const [localRes, ytRes] = await Promise.all([
+            fetch(`/videos/${videoId}/comments`),
+            fetch(`/api/youtube/comments/${videoId}`)
+        ]);
+
+        const localComments = localRes.ok ? await localRes.json() : [];
+        const ytComments = ytRes.ok ? await ytRes.json() : [];
+
+        // Рендерим локальные комментарии
+        const localHtml = localComments.map(c => `
+            <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <b style="color: #8b5cf6; cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
+                    <small style="color: #666;">${formatDate(c.created_at)}</small>
+                </div>
+                <div style="font-size: 14px; color: #ddd;">${c.comment_text}</div>
             </div>
-            <div style="font-size: 14px; color: #ddd;">${c.comment_text}</div>
-        </div>
-    `).join('');
+        `).join('');
+
+        // Рендерим YouTube комментарии
+        const ytHtml = ytComments.map(c => `
+            <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; opacity: 0.8;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <b style="color: #ff4e4e; font-size: 12px;">YouTube: ${c.user}</b>
+                </div>
+                <div style="font-size: 14px; color: #ddd;">${c.text}</div>
+            </div>
+        `).join('');
+
+        // Выводим результат
+        if (localComments.length === 0 && ytComments.length === 0) {
+            list.innerHTML = '<p style="color: #888;">Комментариев пока нет.</p>';
+        } else {
+            list.innerHTML = `
+                ${localHtml ? '<h5>Ваши комментарии</h5>' + localHtml : ''}
+                <h5 style="margin-top:20px;">Комментарии с YouTube</h5>
+                ${ytHtml || '<p>Комментариев с YouTube нет.</p>'}
+            `;
+        }
+    } catch (err) {
+        console.error("Ошибка загрузки комментариев:", err);
+        list.innerHTML = '<p style="color: #ff4e4e;">Не удалось загрузить комментарии.</p>';
+    }
 }
 
 document.querySelector('.send-btn').onclick = async function() {
