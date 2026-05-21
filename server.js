@@ -449,14 +449,19 @@ app.get('/api/youtube/trends', async (req, res) => {
         const youtube = await Innertube.create();
         const trends = await youtube.getTrending();
         
+        if (!trends || !trends.videos) {
+            return res.json([]);
+        }
+
+        // Безопасный маппинг с проверкой наличия внутренних свойств (?.)
         const videos = trends.videos.map(v => ({
-            _id: v.id,
-            title: v.title.text,
-            description: v.description || '',
-            url: `https://www.youtube.com/embed/${v.id}`,
-            thumbnail_url: v.thumbnails[0].url,
-            author_name: v.author.name,
-            views: v.views?.text || "0 просмотров",
+            _id: v.id || '',
+            title: v.title?.text || v.title?.toString() || 'Без названия',
+            description: v.description?.text || v.description?.toString() || '',
+            url: v.id ? `https://www.youtube.com/embed/${v.id}` : '',
+            thumbnail_url: v.thumbnails?.[0]?.url || '',
+            author_name: v.author?.name || 'YouTube Автор',
+            views: v.views?.text || v.short_view_count?.text || "0 просмотров",
             created_at: v.published?.text || "Недавно"
         }));
 
@@ -476,14 +481,19 @@ app.get('/api/youtube/search', async (req, res) => {
         const youtube = await Innertube.create();
         const searchResults = await youtube.search(query);
         
+        if (!searchResults || !searchResults.videos) {
+            return res.json([]);
+        }
+
+        // Безопасный маппинг с проверкой наличия внутренних свойств (?.)
         const videos = searchResults.videos.map(v => ({
-            _id: v.id,
-            title: v.title.text,
-            description: v.description || '',
-            url: `https://www.youtube.com/embed/${v.id}`,
-            thumbnail_url: v.thumbnails[0].url,
-            author_name: v.author.name,
-            views: v.views?.text || "0 просмотров",
+            _id: v.id || '',
+            title: v.title?.text || v.title?.toString() || 'Без названия',
+            description: v.description?.text || v.description?.toString() || '',
+            url: v.id ? `https://www.youtube.com/embed/${v.id}` : '',
+            thumbnail_url: v.thumbnails?.[0]?.url || '',
+            author_name: v.author?.name || 'YouTube Автор',
+            views: v.views?.text || v.short_view_count?.text || "0 просмотров",
             created_at: v.published?.text || "Недавно"
         }));
 
@@ -494,7 +504,7 @@ app.get('/api/youtube/search', async (req, res) => {
     }
 });
 
-// --- ЗАПУСК СЕРВЕРА (ОДИН РАЗ И В САМОМ КОНЦЕ) ---
+// --- ЗАПУСК СЕРВЕРА ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 VideoHub на MongoDB запущен! Порт: ${PORT}`);
