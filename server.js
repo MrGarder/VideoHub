@@ -56,7 +56,6 @@ async function connectDB() {
 }
 connectDB();
 
-// --- НАСТРОЙКА MULTER (Временное хранилище перед отправкой в облако) ---
 // --- НАСТРОЙКА MULTER ---
 
 // 1. Для тяжелых файлов (видео и превью) оставляем диск, чтобы не забивать оперативку
@@ -68,15 +67,15 @@ const uploadDisk = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024
 const uploadFields = uploadDisk.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
 
 // 2. ДЛЯ АВАТАРОК создаем быструю загрузку через оперативную память (Memory Storage)
-// Это решит проблему с ошибкой 500 на Render
+// Используем .any(), чтобы не падать из-за несовпадения имен полей с фронтенда
 const memoryStorage = multer.memoryStorage();
 const uploadAvatar = multer({ 
     storage: memoryStorage, 
     limits: { fileSize: 10 * 1024 * 1024 } // Ограничение 10 МБ для фото
-}).single('avatar');
+}).any();
 
 
-// --- МАРШРУТЫ: ПРОФИЛИ (ДОБАВЛЕНО И ИСПРАВЛЕНО) ---
+// --- МАРШРУТЫ: ПРОФИЛИ ---
 
 // 1. Получение данных профиля (для watch.html и profile.html)
 app.get('/user/profile/:username', async (req, res) => {
@@ -90,7 +89,6 @@ app.get('/user/profile/:username', async (req, res) => {
             return res.status(404).json({ error: "Пользователь не найден" });
         }
         
-        // Отдаем аватарку, кастомное имя и описание канала
         res.json({
             username: user.username,
             name: user.name || user.username,
@@ -102,7 +100,7 @@ app.get('/user/profile/:username', async (req, res) => {
     }
 });
 
-// 2. Обновление профиля (загрузка аватарки в Cloudinary и сохранение в БД)
+// 2. Обновление профиля (загрузка аватарки из памяти в Cloudinary через поток)
 app.post('/user/update-profile', uploadAvatar, async (req, res) => {
     try {
         const { username, name, about } = req.body;
@@ -112,16 +110,29 @@ app.post('/user/update-profile', uploadAvatar, async (req, res) => {
         if (name) updateData.name = name;
         if (about !== undefined) updateData.about = about;
 
-        // Если загружен файл аватарки, кидаем его в Cloudinary
-        if (req.file) {
-            const avatarResult = await cloudinary.uploader.upload(req.file.path, {
-                folder: "videohub/avatars",
-                transformation: [{ width: 150, height: 150, crop: "fill" }] // Авто-обрезка под квадрат
-            });
-            updateData.avatar = avatarResult.secure_url;
+        // Если прилетел файл аватарки (так как используем .any(), файлы лежат в массиве req.files)
+        if (req.files && req.files.length > 0) {
+            const file = req.files[0];
 
-            // Удаляем временный файл с локального сервера
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            // Загружаем напрямую из буфера памяти через upload_stream
+            const cloudinaryUpload = () => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: "videohub/avatars",
+                            transformation: [{ width: 150, height: 150, crop: "fill" }] // Обрезка под квадрат
+                        },
+                        (error, result) => {
+                            if (result) resolve(result);
+                            else reject(error);
+                        }
+                    );
+                    stream.end(file.buffer); // Скармливаем поток буфера файла
+                });
+            };
+
+            const avatarResult = await cloudinaryUpload();
+            updateData.avatar = avatarResult.secure_url;
         }
 
         const result = await db.collection('users').updateOne(
@@ -133,7 +144,6 @@ app.post('/user/update-profile', uploadAvatar, async (req, res) => {
             return res.status(404).json({ error: "Пользователь не найден" });
         }
 
-        // Получаем обновленный профиль, чтобы отдать назад на фронтенд
         const updatedUser = await db.collection('users').findOne({ username });
 
         res.status(200).json({
@@ -161,8 +171,8 @@ app.post('/register', async (req, res) => {
             username,
             password: hashedPassword,
             email,
-            name: username, // по дефолту имя совпадает с логином
-            avatar: "",     // изначально аватарки нет
+            name: username,
+            avatar: "",     
             about: "",
             created_at: new Date()
         });
@@ -195,39 +205,33 @@ app.post('/upload', uploadFields, async (req, res) => {
 
         const videoLocalPath = files.video[0].path;
 
-        // 1. Грузим видео в Cloudinary
         const videoResult = await cloudinary.uploader.upload(videoLocalPath, {
             resource_type: "video",
             folder: "videohub/videos"
         });
 
-        // 2. Если есть превью, грузим его, если нет - делаем из видео
         let finalThumbUrl = "";
         if (files.thumbnail && files.thumbnail[0]) {
             const thumbResult = await cloudinary.uploader.upload(files.thumbnail[0].path, {
                 folder: "videohub/thumbs"
             });
             finalThumbUrl = thumbResult.secure_url;
-            // Удаляем временное превью
             if (fs.existsSync(files.thumbnail[0].path)) fs.unlinkSync(files.thumbnail[0].path);
         } else {
-            // Авто-превью из видео (первый кадр)
             finalThumbUrl = videoResult.secure_url.replace(/\.[^/.]+$/, ".jpg");
         }
 
-        // 3. Сохраняем в БД
         await db.collection('videos').insertOne({
             title,
             description: description || '',
             url: videoResult.secure_url,
             thumbnail_url: finalThumbUrl,
             author_name: username,
-            cloudinary_id: videoResult.public_id, // Сохраняем ID для удаления
+            cloudinary_id: videoResult.public_id,
             views: 0,
             created_at: new Date()
         });
 
-        // Удаляем временное видео с диска сервера
         if (fs.existsSync(videoLocalPath)) fs.unlinkSync(videoLocalPath);
 
         res.status(200).send('Опубликовано!');
@@ -399,7 +403,6 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
             return res.status(403).json({ success: false, error: "Нет прав!" });
         }
         
-        // Удаляем из Cloudinary, если есть ID
         if (video.cloudinary_id) {
             await cloudinary.uploader.destroy(video.cloudinary_id, { resource_type: 'video' });
         }
@@ -409,7 +412,7 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// --- ДОБАВЛЕНО ДЛЯ УВЕДОМЛЕНИЙ (Если у тебя фронтенд шлет сюда запросы) ---
+// --- ДЛЯ УВЕДОМЛЕНИЙ ---
 app.get('/notifications/:username', async (req, res) => {
     try {
         const notes = await db.collection('notifications').find({ to_user: req.params.username }).sort({ _id: -1 }).limit(20).toArray();
