@@ -4,10 +4,9 @@
   <meta charset="utf-8" />
   <title>VideoHub — Просмотр</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="uploads/IMG_5231.PNG">
   <style>
-    :root { --bg1: #1e1e2f; --glass: rgba(255,255,255,0.04); --text: #fff; --accent: #8b5cf6; --muted: rgba(255,255,255,0.7); }
-    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f1a; color: white; }
+    :root { --bg1: #0f0f1a; --accent: #8b5cf6; }
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg1); color: white; }
     .topbar { display: flex; align-items: center; padding: 15px 20px; background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); }
     .container { display: flex; gap: 24px; padding: 20px; max-width: 1400px; margin: auto; }
     .player-column { flex: 2.5; }
@@ -17,40 +16,23 @@
     .side-card { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; padding: 5px; border-radius: 8px; }
     .side-card:hover { background: rgba(255,255,255,0.05); }
     .side-thumb { width: 120px; height: 68px; background: #222; border-radius: 8px; object-fit: cover; }
-    .video-info { padding: 20px 0; border-bottom: 1px solid #333; }
-    .subscribe-btn { background: #fff; color: #000; padding: 8px 16px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; }
-    .subscribe-btn.active { background: #333; color: #fff; }
-    .comment-form textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; padding: 10px 0; outline: none; }
+    .comment-item { margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 10px; }
   </style>
 </head>
 <body>
 
 <div class="topbar">
-    <button onclick="history.back()" style="background:none; border:none; color:white; cursor:pointer; margin-right:20px;">← Назад</button>
-    <div style="font-size:22px; font-weight:bold;">Video<span style="color:#8b5cf6;">Hub</span></div>
+    <button onclick="history.back()" style="background:none; border:none; color:white; cursor:pointer;">← Назад</button>
+    <div style="font-size:22px; font-weight:bold; margin-left:20px;">Video<span style="color:var(--accent);">Hub</span></div>
 </div>
 
 <div class="container">
     <div class="player-column">
         <div id="player-container"></div>
-        <h2 id="videoTitle">Загрузка видео...</h2>
-        <div class="video-info">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div id="authorName" style="font-weight:bold;">Автор</div>
-                    <div id="subCount" style="font-size:12px; color:gray;">0 подписчиков</div>
-                </div>
-                <button class="subscribe-btn" id="subBtn">Подписаться</button>
-            </div>
-            <p id="descText" style="color:#ccc; font-size:14px; margin-top:15px;"></p>
-        </div>
+        <h2 id="videoTitle">Загрузка...</h2>
         
         <h3>Комментарии</h3>
-        <div class="comment-form">
-            <textarea id="commentInput" placeholder="Ваш комментарий..."></textarea>
-            <button id="sendBtn" style="margin-top:10px; padding:8px 20px; border-radius:20px; cursor:pointer;">Отправить</button>
-        </div>
-        <div id="commentsList"></div>
+        <div id="commentsList">Загрузка комментариев...</div>
     </div>
     
     <aside class="side-column">
@@ -61,70 +43,50 @@
 
 <script>
 const videoId = new URLSearchParams(window.location.search).get('v');
-const currentUser = localStorage.getItem('currentUser');
 
-async function loadPage() {
+async function init() {
     if (!videoId) return;
-    
-    // Инициализация плеера
     document.getElementById('player-container').innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" allowfullscreen></iframe>`;
     
-    try {
-        const response = await fetch('/api/youtube/trends');
-        const videos = await response.json();
-        const video = videos.find(v => v._id == videoId);
-        
-        if (video) {
-            document.getElementById('videoTitle').innerText = video.title;
-            document.getElementById('descText').innerText = video.description || "Без описания";
-            document.getElementById('authorName').innerText = "@" + video.author_name;
-            
-            // Загрузка статистики
-            fetch(`/subscribe/count/${video.author_name}`)
-                .then(r => r.json())
-                .then(data => document.getElementById('subCount').innerText = (data.count || 0) + " подписчиков");
-        }
-        
-        // Рендер рекомендаций
-        const list = document.getElementById('recommendedList');
-        list.innerHTML = videos.filter(v => v._id != videoId).map(v => `
-            <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
-                <img src="${v.thumbnail_url}" class="side-thumb">
-                <div>
-                    <div style="font-size:14px; font-weight:500;">${v.title}</div>
-                    <div style="font-size:12px; color:gray;">${v.author_name}</div>
-                </div>
-            </div>
-        `).join('');
-
-        loadComments();
-    } catch (e) { console.error("Ошибка загрузки данных:", e); }
+    loadVideoData();
+    loadYouTubeComments(); // ВЫЗОВ ФУНКЦИИ КОММЕНТАРИЕВ
 }
 
-async function loadComments() {
-    const res = await fetch(`/videos/${videoId}/comments`);
-    const comments = await res.json();
-    document.getElementById('commentsList').innerHTML = comments.map(c => `
-        <div style="margin: 15px 0; padding-bottom:10px; border-bottom:1px solid #222;">
-            <div style="font-weight:bold; color:#8b5cf6;">@${c.user_name}</div>
-            <div style="margin-top:5px;">${c.comment_text}</div>
+async function loadYouTubeComments() {
+    try {
+        // ЭТОТ ЗАПРОС ДОЛЖЕН ИДТИ НА ТВОЙ СЕРВЕР (server.js)
+        // Сервер сам должен сделать запрос в YouTube API и вернуть JSON
+        const res = await fetch(`/api/youtube/comments/${videoId}`);
+        const comments = await res.json();
+        
+        const list = document.getElementById('commentsList');
+        list.innerHTML = comments.map(c => `
+            <div class="comment-item">
+                <div style="color:var(--accent); font-weight:bold;">@${c.user}</div>
+                <div style="font-size:14px; margin-top:5px;">${c.text}</div>
+            </div>
+        `).join('');
+    } catch (e) {
+        document.getElementById('commentsList').innerHTML = "Не удалось загрузить комментарии.";
+    }
+}
+
+async function loadVideoData() {
+    const res = await fetch('/api/youtube/trends');
+    const videos = await res.json();
+    const v = videos.find(x => x._id == videoId);
+    if(v) document.getElementById('videoTitle').innerText = v.title;
+    
+    const list = document.getElementById('recommendedList');
+    list.innerHTML = videos.slice(0, 6).map(v => `
+        <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
+            <img src="${v.thumbnail_url}" class="side-thumb">
+            <div style="font-size:13px;">${v.title}</div>
         </div>
     `).join('');
 }
 
-document.getElementById('sendBtn').onclick = async () => {
-    const text = document.getElementById('commentInput').value;
-    if (!currentUser || !text.trim()) return alert("Авторизуйтесь!");
-    await fetch(`/videos/${videoId}/comments`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: currentUser, text })
-    });
-    document.getElementById('commentInput').value = '';
-    loadComments();
-};
-
-loadPage();
+init();
 </script>
 </body>
 </html>
