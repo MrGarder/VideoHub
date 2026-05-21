@@ -12,9 +12,9 @@ const app = express();
 
 // --- НАСТРОЙКА CLOUDINARY ---
 cloudinary.config({ 
-  cloud_name: 'dk7o3keez', 
-  api_key: '669527537632519', 
-  api_secret: 'TVzkbUKrfSFNT8TV6oKThhonSCg' 
+  cloud_name: 'dtcfxvsfo', 
+  api_key: '231547552894299', 
+  api_secret: '9slnAsQaAYy7Ub44kW6PfrzWyIM' 
 });
 
 // Настройки парсинга данных
