@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="icon" type="image/png" href="uploads/IMG_5231.PNG">
   <style>
-    :root{
+    :root {
       --bg1: #1e1e2f;
       --glass: rgba(255,255,255,0.04);
       --text: #fff;
@@ -287,12 +287,14 @@ async function initWatchPage() {
 
         const avatarDiv = document.getElementById('authorAvatar');
         try {
-            const profileRes = await fetch(`${API_URL}/user-profile/${authorName}`);
+            // ИСПРАВЛЕНО: используем правильный роут получения профиля с сервера
+            const profileRes = await fetch(`${API_URL}/user/profile/${authorName}`);
             if (profileRes.ok) {
                 const profile = await profileRes.json();
-                if (profile && profile.avatarUrl) {
+                // ИСПРАВЛЕНО: ищем ключ 'avatar' вместо 'avatarUrl'
+                if (profile && profile.avatar) {
                     avatarDiv.innerText = '';
-                    avatarDiv.style.backgroundImage = `url("${profile.avatarUrl}")`;
+                    avatarDiv.style.backgroundImage = `url("${profile.avatar}")`;
                 } else {
                     avatarDiv.innerText = authorName[0].toUpperCase();
                     avatarDiv.style.backgroundImage = 'none';
@@ -304,7 +306,19 @@ async function initWatchPage() {
             avatarDiv.innerText = authorName[0].toUpperCase();
         }
 
-        document.getElementById('authorName').innerText = "@" + authorName;
+        // ИСПРАВЛЕНО: имя канала берется из кастомного имени в базе, если оно задано
+        try {
+            const profileRes = await fetch(`${API_URL}/user/profile/${authorName}`);
+            if (profileRes.ok) {
+                const profile = await profileRes.json();
+                document.getElementById('authorName').innerText = profile.name || "@" + authorName;
+            } else {
+                document.getElementById('authorName').innerText = "@" + authorName;
+            }
+        } catch(e) {
+            document.getElementById('authorName').innerText = "@" + authorName;
+        }
+
         document.getElementById('authorLink').onclick = () => goToChannel(authorName);
 
         const subRes = await fetch(`${API_URL}/subscribe/count/${authorName}`);
@@ -376,7 +390,7 @@ document.getElementById('dislikeBtn').onclick = async function() {
 
 document.getElementById('subBtn').onclick = async function() {
     if(!currentUser) return alert("Войдите в аккаунт!");
-    const authorName = document.getElementById('authorName').innerText.replace('@', '');
+    const authorName = currentVideoData ? currentVideoData.author_name : '';
     if(currentUser === authorName) return alert("Это ваш канал");
 
     const res = await fetch(`${API_URL}/subscribe`, {
