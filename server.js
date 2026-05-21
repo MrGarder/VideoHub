@@ -177,7 +177,7 @@ app.post('/register', async (req, res) => {
             password: hashedPassword,
             email,
             name: username,
-            avatar: "",     
+            avatar: "",      
             about: "",
             created_at: new Date()
         });
@@ -268,7 +268,6 @@ app.put('/videos/:id', async (req, res) => {
 
 app.post('/videos/:id/view', async (req, res) => {
     try {
-        // Убираем жесткую валидацию ObjectId, так как у YouTube роликов ID — это просто строка букв
         if (ObjectId.isValid(req.params.id)) {
             await db.collection('videos').updateOne({ _id: new ObjectId(req.params.id) }, { $inc: { views: 1 } });
         }
@@ -283,7 +282,7 @@ app.get('/user-videos/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ЛАЙКИ И ДИЗЛАЙКИ (ИСПРАВЛЕНО ДЛЯ РАБОТЫ С КСТАТИ И С YOUTUBE ID) ---
+// --- ЛАЙКИ И ДИЗЛАЙКИ ---
 
 app.get('/videos/:id/likes-status', async (req, res) => {
     const videoId = req.params.id;
@@ -330,7 +329,7 @@ app.post('/videos/:id/dislike', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ПОДПИСКИ (ИСПРАВЛЕНО ПОД ТРЕБОВАНИЯ КЛИЕНТА) ---
+// --- ПОДПИСКИ ---
 
 app.get('/subscribe/status', async (req, res) => {
     const { follower, authorName } = req.query;
@@ -516,18 +515,19 @@ app.get('/api/youtube/search', async (req, res) => {
         res.status(500).json({ error: "Ошибка при поиске" });
     }
 });
+
 // --- ИНТЕГРАЦИЯ КОММЕНТАРИЕВ YOUTUBE ---
 app.get('/api/youtube/comments/:videoId', async (req, res) => {
     try {
         const { videoId } = req.params;
         if (!youtube) return res.status(503).json({ error: "YouTube сессия не готова" });
 
-        // Получаем информацию о видео, чтобы достать ветку комментариев
-        const videoInfo = await youtube.getVideoInfo(videoId);
+        // Используем getInfo (актуальный метод)
+        const videoInfo = await youtube.getInfo(videoId);
         const commentsData = await videoInfo.getComments();
 
         // Формируем массив комментариев
-        const comments = commentsData.contents.map(c => ({
+        const comments = (commentsData.contents || []).map(c => ({
             user: c.author?.text || "Аноним",
             text: c.content?.text || ""
         }));
@@ -538,6 +538,7 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         res.status(500).json({ error: "Не удалось загрузить комментарии" });
     }
 });
+
 // --- ЗАПУСК СЕРВЕРА ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
