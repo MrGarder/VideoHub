@@ -61,7 +61,6 @@ connectDB();
 let youtube;
 async function initYouTube() {
     try {
-        // Создаем одну сессию на всё время работы сервера с геолокацией
         youtube = await Innertube.create({ lang: 'ru', location: 'RU' });
         console.log("🚀 Сессия YouTube Innertube успешно создана");
     } catch (err) {
@@ -71,8 +70,6 @@ async function initYouTube() {
 initYouTube();
 
 // --- НАСТРОЙКА MULTER ---
-
-// 1. Для тяжелых файлов (видео и превью) оставляем диск
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -80,11 +77,10 @@ const diskStorage = multer.diskStorage({
 const uploadDisk = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024 * 1024 } });
 const uploadFields = uploadDisk.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
 
-// 2. Для аватарок используем оперативную память
 const memoryStorage = multer.memoryStorage();
 const uploadAvatar = multer({ 
     storage: memoryStorage, 
-    limits: { fileSize: 10 * 1024 * 1024 } 
+    limits: { fileSize: 100 * 1024 * 1024 } 
 }).any();
 
 
@@ -204,7 +200,7 @@ app.post('/login', async (req, res) => {
     } catch (err) { res.status(500).send('Ошибка сервера'); }
 });
 
-// --- МАРШРУТЫ: ВИДЕО (ЗАГРУЗКА В CLOUDINARY) ---
+// --- МАРШРУТЫ: ВИДЕО ---
 
 app.post('/upload', uploadFields, async (req, res) => {
     try {
@@ -272,8 +268,10 @@ app.put('/videos/:id', async (req, res) => {
 
 app.post('/videos/:id/view', async (req, res) => {
     try {
-        if (!ObjectId.isValid(req.params.id)) return res.status(400).send("Некорректный ID");
-        await db.collection('videos').updateOne({ _id: new ObjectId(req.params.id) }, { $inc: { views: 1 } });
+        // Убираем жесткую валидацию ObjectId, так как у YouTube роликов ID — это просто строка букв
+        if (ObjectId.isValid(req.params.id)) {
+            await db.collection('videos').updateOne({ _id: new ObjectId(req.params.id) }, { $inc: { views: 1 } });
+        }
         res.sendStatus(200);
     } catch (err) { res.status(500).send(err.message); }
 });
@@ -285,7 +283,7 @@ app.get('/user-videos/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ЛАЙКИ И ДИЗЛАЙКИ ---
+// --- ЛАЙКИ И ДИЗЛАЙКИ (ИСПРАВЛЕНО ДЛЯ РАБОТЫ С КСТАТИ И С YOUTUBE ID) ---
 
 app.get('/videos/:id/likes-status', async (req, res) => {
     const videoId = req.params.id;
@@ -332,7 +330,7 @@ app.post('/videos/:id/dislike', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// --- ПОДПИСКИ ---
+// --- ПОДПИСКИ (ИСПРАВЛЕНО ПОД ТРЕБОВАНИЯ КЛИЕНТА) ---
 
 app.get('/subscribe/status', async (req, res) => {
     const { follower, authorName } = req.query;
@@ -431,7 +429,7 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// --- УВЕДОМЛЕНИЙ ---
+// --- УВЕДОМЛЕНИЯ ---
 
 app.get('/notifications/:username', async (req, res) => {
     try {
@@ -456,14 +454,12 @@ app.post('/notifications/read', async (req, res) => {
 
 // --- ИНТЕГРАЦИЯ YOUTUBE ---
 
-// Вкладка трендов (главная страница)
 app.get('/api/youtube/trends', async (req, res) => {
     try {
         if (!youtube) {
             return res.status(503).json({ error: "Сессия YouTube еще инициализируется, обновите страницу через секунду" });
         }
 
-        // Запасной рабочий вариант через поиск, пока метод getTrending() ломается на стороне API YouTube
         const searchResults = await youtube.search('тренды'); 
         
         if (!searchResults || !searchResults.videos) {
@@ -488,7 +484,6 @@ app.get('/api/youtube/trends', async (req, res) => {
     }
 });
 
-// Поиск по ключевым словам
 app.get('/api/youtube/search', async (req, res) => {
     try {
         const { query } = req.query;
