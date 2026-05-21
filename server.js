@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2; // Подключили Cloudinary
+const { Innertube } = require('youtubei.js'); // Импорт для работы с YouTube
 require('dotenv').config();
 
 const app = express();
@@ -58,7 +59,7 @@ connectDB();
 
 // --- НАСТРОЙКА MULTER ---
 
-// 1. Для тяжелых файлов (видео и превью) оставляем диск, чтобы не забивать оперативку
+// 1. Для тяжелых файлов (видео и превью) оставляем диск
 const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -66,18 +67,16 @@ const diskStorage = multer.diskStorage({
 const uploadDisk = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024 * 1024 } });
 const uploadFields = uploadDisk.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
 
-// 2. ДЛЯ АВАТАРОК создаем быструю загрузку через оперативную память (Memory Storage)
-// Используем .any(), чтобы не падать из-за несовпадения имен полей с фронтенда
+// 2. Для аватарок используем оперативную память
 const memoryStorage = multer.memoryStorage();
 const uploadAvatar = multer({ 
     storage: memoryStorage, 
-    limits: { fileSize: 10 * 1024 * 1024 } // Ограничение 10 МБ для фото
+    limits: { fileSize: 10 * 1024 * 1024 } 
 }).any();
 
 
 // --- МАРШРУТЫ: ПРОФИЛИ ---
 
-// 1. Получение данных профиля (для watch.html и profile.html)
 app.get('/user/profile/:username', async (req, res) => {
     try {
         const username = req.params.username;
@@ -100,7 +99,6 @@ app.get('/user/profile/:username', async (req, res) => {
     }
 });
 
-// 2. Обновление профиля (загрузка аватарки из памяти в Cloudinary через поток)
 app.post('/user/update-profile', uploadAvatar, async (req, res) => {
     try {
         const { username, name, about } = req.body;
@@ -110,24 +108,22 @@ app.post('/user/update-profile', uploadAvatar, async (req, res) => {
         if (name) updateData.name = name;
         if (about !== undefined) updateData.about = about;
 
-        // Если прилетел файл аватарки (так как используем .any(), файлы лежат в массиве req.files)
         if (req.files && req.files.length > 0) {
             const file = req.files[0];
 
-            // Загружаем напрямую из буфера памяти через upload_stream
             const cloudinaryUpload = () => {
                 return new Promise((resolve, reject) => {
                     const stream = cloudinary.uploader.upload_stream(
                         {
                             folder: "videohub/avatars",
-                            transformation: [{ width: 150, height: 150, crop: "fill" }] // Обрезка под квадрат
+                            transformation: [{ width: 150, height: 150, crop: "fill" }]
                         },
                         (error, result) => {
                             if (result) resolve(result);
                             else reject(error);
                         }
                     );
-                    stream.end(file.buffer); // Скармливаем поток буфера файла
+                    stream.end(file.buffer);
                 });
             };
 
@@ -276,6 +272,8 @@ app.get('/user-videos/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- ЛАЙКИ И ДИЗЛАЙКИ ---
+
 app.get('/videos/:id/likes-status', async (req, res) => {
     const videoId = req.params.id;
     const { username } = req.query;
@@ -321,6 +319,8 @@ app.post('/videos/:id/dislike', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- ПОДПИСКИ ---
+
 app.get('/subscribe/status', async (req, res) => {
     const { follower, authorName } = req.query;
     try {
@@ -350,6 +350,8 @@ app.get('/subscribe/count/:authorName', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- ИСТОРИЯ ---
+
 app.post('/history/add', async (req, res) => {
     const { username, videoId } = req.body;
     try {
@@ -370,6 +372,8 @@ app.get('/history/:username', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- КОММЕНТАРИИ ---
+
 app.get('/videos/:id/comments', async (req, res) => {
     try {
         const result = await db.collection('video_comments').find({ video_id: req.params.id }).sort({ created_at: -1 }).toArray();
@@ -389,6 +393,8 @@ app.post('/videos/:id/comments', async (req, res) => {
         res.status(201).send("Комментарий добавлен");
     } catch (err) { res.status(500).send(err.message); }
 });
+
+// --- УДАЛЕНИЕ ВИДЕО ---
 
 app.delete('/admin/delete-video/:id', async (req, res) => {
     try {
@@ -412,7 +418,8 @@ app.delete('/admin/delete-video/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// --- ДЛЯ УВЕДОМЛЕНИЙ ---
+// --- УВЕДОМЛЕНИЙ ---
+
 app.get('/notifications/:username', async (req, res) => {
     try {
         const notes = await db.collection('notifications').find({ to_user: req.params.username }).sort({ _id: -1 }).limit(20).toArray();
@@ -434,7 +441,60 @@ app.post('/notifications/read', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- ИНТЕГРАЦИЯ YOUTUBE ---
 
+// Вкладка трендов (главная страница)
+app.get('/api/youtube/trends', async (req, res) => {
+    try {
+        const youtube = await Innertube.create();
+        const trends = await youtube.getTrending();
+        
+        const videos = trends.videos.map(v => ({
+            _id: v.id,
+            title: v.title.text,
+            description: v.description || '',
+            url: `https://www.youtube.com/embed/${v.id}`,
+            thumbnail_url: v.thumbnails[0].url,
+            author_name: v.author.name,
+            views: v.views?.text || "0 просмотров",
+            created_at: v.published?.text || "Недавно"
+        }));
+
+        res.json(videos);
+    } catch (err) {
+        console.error("Ошибка парсинга трендов:", err);
+        res.status(500).json({ error: "Не удалось загрузить видео с YouTube" });
+    }
+});
+
+// Поиск по ключевым словам
+app.get('/api/youtube/search', async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.status(400).send("Введите запрос для поиска");
+
+        const youtube = await Innertube.create();
+        const searchResults = await youtube.search(query);
+        
+        const videos = searchResults.videos.map(v => ({
+            _id: v.id,
+            title: v.title.text,
+            description: v.description || '',
+            url: `https://www.youtube.com/embed/${v.id}`,
+            thumbnail_url: v.thumbnails[0].url,
+            author_name: v.author.name,
+            views: v.views?.text || "0 просмотров",
+            created_at: v.published?.text || "Недавно"
+        }));
+
+        res.json(videos);
+    } catch (err) {
+        console.error("Ошибка поиска YouTube:", err);
+        res.status(500).json({ error: "Ошибка при поиске" });
+    }
+});
+
+// --- ЗАПУСК СЕРВЕРА (ОДИН РАЗ И В САМОМ КОНЦЕ) ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 VideoHub на MongoDB запущен! Порт: ${PORT}`);
