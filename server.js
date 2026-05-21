@@ -14,9 +14,9 @@ const googleClient = new OAuth2Client("897716797553-spvtnmo96h8mnn9tioa4t4ir1iqv
 
 // --- НАСТРОЙКА CLOUDINARY ---
 cloudinary.config({ 
-  cloud_name: 'dk7o3keez', 
-  api_key: '669527537632519', 
-  api_secret: 'TVzkbUKrfSFNT8TV6oKThhonSCg' 
+  cloud_name: 'dtcfxvsfo', 
+  api_key: '231547552894299', 
+  api_secret: '9slnAsQaAYy7Ub44kW6PfrzWyIM' 
 });
 
 app.use(express.json({ limit: '100mb' }));
