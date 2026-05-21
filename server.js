@@ -531,12 +531,20 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         // Используем опциональную цепочку (?.), чтобы избежать падения, если структура изменилась
         const rawComments = commentsData.sections?.[0]?.contents || commentsData.contents || [];
 
-        // 3. Маппинг данных
-        const comments = rawComments.map(c => ({
-            // Убедитесь, что пути к автору и тексту соответствуют структуре ответа
-            user: c.author?.text?.text || c.author?.text || "Аноним",
-            text: c.content?.text || ""
-        })).filter(c => c.text !== ""); // Убираем пустые записи
+       // 3. Маппинг данных
+const comments = rawComments.map(c => {
+    // Безопасное извлечение имени автора
+    let author = "Аноним";
+    if (c.author?.text?.text) author = c.author.text.text;
+    else if (c.author?.text?.runs) author = c.author.text.runs[0].text;
+
+    // Безопасное извлечение текста комментария (через runs)
+    let text = "";
+    if (c.content?.text) text = c.content.text;
+    else if (c.content?.runs) text = c.content.runs.map(r => r.text).join('');
+
+    return { user: author, text: text };
+}).filter(c => c.text.trim() !== ""); // Убираем пустые записи
 
         res.json(comments);
     } catch (err) {
@@ -545,7 +553,36 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
     }
 });
 
-// --- ЗАПУСК СЕРВЕРА ---
+// В функции initYouTube
+async function initYouTube() {
+    try {
+        youtube = await Innertube.create({ 
+            lang: 'ru', 
+            location: 'RU',
+            // Иногда помогает отключение предзагрузки некоторых данных
+            fetcher: undefined 
+        });
+        console.log("🚀 Сессия YouTube Innertube успешно создана");
+    } catch (err) {
+        console.error("❌ Ошибка инициализации:", err.message);
+    }
+}
+// --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ---
+async function initYouTube() {
+    try {
+        youtube = await Innertube.create({ 
+            lang: 'ru', 
+            location: 'RU' 
+        });
+        console.log("🚀 Сессия YouTube Innertube успешно создана");
+    } catch (err) {
+        console.error("❌ Ошибка инициализации:", err.message);
+    }
+}
+
+// ВАЖНО: Вызов функции инициализации
+initYouTube(); 
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 VideoHub на MongoDB запущен! Порт: ${PORT}`);
