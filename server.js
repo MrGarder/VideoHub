@@ -516,7 +516,28 @@ app.get('/api/youtube/search', async (req, res) => {
         res.status(500).json({ error: "Ошибка при поиске" });
     }
 });
+// --- ИНТЕГРАЦИЯ КОММЕНТАРИЕВ YOUTUBE ---
+app.get('/api/youtube/comments/:videoId', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        if (!youtube) return res.status(503).json({ error: "YouTube сессия не готова" });
 
+        // Получаем информацию о видео, чтобы достать ветку комментариев
+        const videoInfo = await youtube.getVideoInfo(videoId);
+        const commentsData = await videoInfo.getComments();
+
+        // Формируем массив комментариев
+        const comments = commentsData.contents.map(c => ({
+            user: c.author?.text || "Аноним",
+            text: c.content?.text || ""
+        }));
+
+        res.json(comments);
+    } catch (err) {
+        console.error("Ошибка получения комментариев YouTube:", err);
+        res.status(500).json({ error: "Не удалось загрузить комментарии" });
+    }
+});
 // --- ЗАПУСК СЕРВЕРА ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
