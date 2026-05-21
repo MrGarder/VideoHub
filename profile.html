@@ -121,19 +121,21 @@
 
   async function load() {
     try {
-        const [vidRes, subRes, userRes] = await Promise.all([
-            fetch('/videos'),
-            fetch(`/subscribe/count/${targetUser}`),
+        // Запрашиваем тренды (откуда подгружаются YouTube видео) и локальные видео
+        const [localVidRes, trendVidRes, subRes, userRes] = await Promise.all([
+            fetch('/videos').then(r => r.ok ? r.json() : []),
+            fetch('/api/youtube/trends').then(r => r.ok ? r.json() : []),
+            fetch(`/subscribe/count/${targetUser}`).then(r => r.ok ? r.json() : {count: 0}),
             fetch(`/user/profile/${targetUser}`).then(r => r.ok ? r.json() : {})
         ]);
         
-        const all = await vidRes.json();
-        const subs = await subRes.json();
-        const userVideos = all.filter(v => v.author_name === targetUser);
+        // Объединяем массивы, чтобы в профиле отображались как загруженные файлы, так и YouTube-видео автора
+        const allVideos = [...localVidRes, ...trendVidRes];
+        const userVideos = allVideos.filter(v => v.author_name === targetUser);
         
         const profileData = userRes || {};
         document.getElementById('displayUsername').innerText = profileData.name || `@${targetUser}`;
-        document.getElementById('videoStats').innerText = `${subs.count || 0} подписчиков • ${userVideos.length} видео`;
+        document.getElementById('videoStats').innerText = `${subRes.count || 0} подписчиков • ${userVideos.length} видео`;
         
         const avatarEl = document.getElementById('userAvatar');
         if(profileData.avatar) {
@@ -150,32 +152,35 @@
         if (targetUser === currentUser) {
             controls.innerHTML = `<button class="btn btn-edit" onclick="openModal('editModal')">⚙️ Настроить</button>`;
         } else {
-            const statusRes = await fetch(`/subscribe/status?follower=${currentUser}&authorName=${targetUser}`);
+            const statusRes = await fetch(`/subscribe/status?follower=${currentUser || ''}&authorName=${targetUser}`);
             const status = await statusRes.json();
             controls.innerHTML = `<button class="btn btn-sub ${status.subscribed ? 'active' : ''}" id="mainSubBtn">${status.subscribed ? 'Вы подписаны' : 'Подписаться'}</button>`;
             document.getElementById('mainSubBtn').onclick = toggleSubscribe;
         }
 
         document.getElementById('myVideos').innerHTML = userVideos.map(v => {
+            const id = v._id || v.id; // Фикс для чтения MongoDB ID роликов
             const hasThumb = v.thumbnail_url && v.thumbnail_url !== 'null';
+            const hasVideoFile = v.url && v.url !== 'null'; // Проверяем, есть ли физический видеофайл для превью
+            
             return `
               <div class="video-card">
                 ${targetUser === currentUser ? `
                   <div class="admin-actions">
-                    <button class="action-btn edit-v-btn" onclick="openEditVideo(${v.id}, '${v.title.replace(/'/g, "\\'")}')">✏️</button>
-                    <button class="action-btn del-btn" onclick="del(${v.id})">🗑</button>
+                    <button class="action-btn edit-v-btn" onclick="openEditVideo('${id}', '${v.title.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="action-btn del-btn" onclick="del('${id}')">🗑</button>
                   </div>
                 ` : ''}
-                <div class="thumb-nav" onclick="location.href='watch.html?v=${v.id}'" 
-                     onmouseenter="this.querySelector('video').play(); if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
-                     onmouseleave="const vid=this.querySelector('video'); vid.pause(); vid.currentTime=0.1; if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
+                <div class="thumb-nav" onclick="location.href='watch.html?v=${id}'" 
+                     onmouseenter="if(this.querySelector('video').getAttribute('src')) { this.querySelector('video').play(); } if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='0'" 
+                     onmouseleave="const vid=this.querySelector('video'); if(vid.getAttribute('src')) { vid.pause(); vid.currentTime=0.1; } if(this.querySelector('.main-thumb')) this.querySelector('.main-thumb').style.opacity='1'">
                     
-                    <video src="${v.url}#t=0.1" muted loop preload="metadata" playsinline></video>
+                    <video src="${hasVideoFile ? v.url + '#t=0.1' : ''}" muted loop preload="metadata" playsinline></video>
                     
                     ${hasThumb ? `<img src="${v.thumbnail_url}" class="main-thumb">` : ''}
                 </div>
                 <div class="card-info">
-                    b>${v.title}</b>
+                    <b>${v.title}</b>
                     <div style="display: flex; justify-content: space-between; color: #888; font-size: 13px;">
                         <span>👁 ${v.views || 0}</span>
                         <span>❤️ ${v.likes || 0}</span>
@@ -219,6 +224,7 @@
   }
 
   async function toggleSubscribe() {
+      if(!currentUser) return alert("Войдите в аккаунт!");
       await fetch('/subscribe', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
