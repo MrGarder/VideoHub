@@ -6,165 +6,115 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="icon" type="image/png" href="uploads/IMG_5231.PNG">
   <style>
-    :root {
-      --bg1: #1e1e2f;
-      --glass: rgba(255,255,255,0.04);
-      --text: #fff;
-      --accent: linear-gradient(135deg, #6b5cff, #8b5cf6);
-      --accent-solid: #6b5cff;
-      --muted: rgba(255,255,255,0.7);
-    }
-    html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background: linear-gradient(135deg,#11111a,#1b1630);color:var(--text);-webkit-font-smoothing:antialiased}
-    
-    .logo { font-size: 24px; font-weight: 800; letter-spacing: -1px; cursor: pointer; background: linear-gradient(135deg, #fff 30%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .logo span { color: #8b5cf6; -webkit-text-fill-color: #8b5cf6; }
-
-    .topbar{display:flex;align-items:center;justify-content: space-between;padding:12px 20px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:20;backdrop-filter: blur(10px);}
-    .topbar-left { display: flex; align-items: center; gap: 12px; }
-
-    .back-btn { background: rgba(140,70,255,.15); border: 1px solid rgba(140,70,255,.3); color: #dcd1ff; padding: 6px 14px; margin-right: 12px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: .25s; }
-    .back-btn:hover { background: rgba(140,70,255,.3); }
-
-    .container{display:flex;gap:24px;padding:20px;max-width:1400px;margin:0 auto}
-    .player-column{flex:2.5;min-width:0}
-    .side-column{flex: 1; max-width: 400px; background: rgba(255,255,255,0.02); border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); height: fit-content; position: sticky; top: 85px; }
-    
-    #player-container { width:100%; border-radius:16px; background:black; aspect-ratio: 16/9; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
-    #player-container iframe { width: 100%; height: 100%; border: none; }
-
-    .title{margin-top:16px;font-size:24px;font-weight:700}
-    .video-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08)}
-    .channel-left{display:flex;gap:12px;align-items:center;min-width:0; cursor: pointer;}
-    .avatar{ width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6,#5143ff); flex-shrink:0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid rgba(255,255,255,0.1); }
-    
-    .engage-row{display:flex;align-items:center;gap:12px}
-    .like-bar{display:flex;align-items:center;background:rgba(255,255,255,0.07);padding:4px;border-radius:20px;border: 1px solid rgba(255,255,255,0.05);}
-    .like-btn, .dislike-btn{background:transparent;border:none;color:var(--text);cursor:pointer;padding:8px 16px;border-radius:18px;display:flex;align-items:center;gap:8px;transition: 0.2s;}
-    .like-btn.active { color: #8b5cf6; background: rgba(139, 92, 246, 0.15); }
-    .dislike-btn.active { color: #ff4e4e; background: rgba(255, 78, 78, 0.15); }
-    .subscribe-btn{padding:10px 24px;border-radius:20px;border:none;background: #fff;color:#000;cursor:pointer;font-weight:700;transition:0.2s}
-    .subscribe-btn.active{background:rgba(255,255,255,0.1);color:var(--text); border: 1px solid rgba(255,255,255,0.2);}
-
-    .desc{margin-top:14px;background:rgba(255,255,255,0.04);padding:16px;border-radius:12px;font-size:14px;line-height:1.6; white-space: pre-wrap; color: #ddd;}
-    .comment-form { display: flex; flex-direction: column; gap: 12px; }
-    .comment-form textarea{width:100%;padding:12px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;font-size:15px;}
-    .send-btn{padding:10px 20px;border-radius:20px;border:none;background:var(--accent-solid);color:white;cursor:pointer;font-weight: 600; align-self: flex-end;}
-
-    .side-card{display:flex;gap:12px;padding:10px;border-radius:12px;cursor:pointer;margin-bottom: 4px;}
-    .side-card:hover{background:rgba(255,255,255,0.06)}
-    .side-thumb-wrapper{width:160px;height:90px;border-radius:10px;overflow: hidden; flex-shrink:0; background: #000;}
-    .side-thumb{width:100%;height:100%;object-fit:cover;}
-    .title-small{font-weight:600;font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-
-    @media (max-width: 1000px) { .container { flex-direction: column; } .side-column { position: static; } }
+    :root { --bg1: #1e1e2f; --glass: rgba(255,255,255,0.04); --text: #fff; --accent: #8b5cf6; --muted: rgba(255,255,255,0.7); }
+    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f1a; color: white; }
+    .topbar { display: flex; align-items: center; padding: 15px 20px; background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); }
+    .container { display: flex; gap: 24px; padding: 20px; max-width: 1400px; margin: auto; }
+    .player-column { flex: 2.5; }
+    #player-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; }
+    .side-column { flex: 1; }
+    .side-card { display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; padding: 5px; border-radius: 8px; }
+    .side-card:hover { background: rgba(255,255,255,0.05); }
+    .side-thumb { width: 120px; height: 68px; background: #222; border-radius: 8px; object-fit: cover; }
+    .video-info { padding: 20px 0; border-bottom: 1px solid #333; }
+    .subscribe-btn { background: #fff; color: #000; padding: 8px 16px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; }
+    .subscribe-btn.active { background: #333; color: #fff; }
+    .comment-form textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid #444; color: white; padding: 10px 0; outline: none; }
   </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="topbar-left">
-    <button class="back-btn" onclick="history.back()">← Назад</button>
-    <div class="logo" onclick="location.href='index.html'">Video<span>Hub</span></div>
-  </div>
+    <button onclick="history.back()" style="background:none; border:none; color:white; cursor:pointer; margin-right:20px;">← Назад</button>
+    <div style="font-size:22px; font-weight:bold;">Video<span style="color:#8b5cf6;">Hub</span></div>
 </div>
 
 <div class="container">
-  <div class="player-column">
-    <div id="player-container"></div>
-    <div id="videoTitle" class="title">Загрузка...</div>
-    <div class="video-meta">
-      <div class="channel-left" id="authorLink">
-        <div class="avatar" id="authorAvatar">?</div>
-        <div class="channel-info">
-          <div id="authorName" class="name">Автор</div>
-          <div style="font-size:12px;color:var(--muted)" id="authorSubCount">0 подписчиков</div>
+    <div class="player-column">
+        <div id="player-container"></div>
+        <h2 id="videoTitle">Загрузка видео...</h2>
+        <div class="video-info">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div id="authorName" style="font-weight:bold;">Автор</div>
+                    <div id="subCount" style="font-size:12px; color:gray;">0 подписчиков</div>
+                </div>
+                <button class="subscribe-btn" id="subBtn">Подписаться</button>
+            </div>
+            <p id="descText" style="color:#ccc; font-size:14px; margin-top:15px;"></p>
         </div>
-      </div>
-      <div class="engage-row">
-        <div class="like-bar">
-          <button id="likeBtn" class="like-btn">👍 <span id="likeCount">0</span></button>
-          <button id="dislikeBtn" class="dislike-btn">👎</button>
+        
+        <h3>Комментарии</h3>
+        <div class="comment-form">
+            <textarea id="commentInput" placeholder="Ваш комментарий..."></textarea>
+            <button id="sendBtn" style="margin-top:10px; padding:8px 20px; border-radius:20px; cursor:pointer;">Отправить</button>
         </div>
-        <button class="subscribe-btn" id="subBtn">Подписаться</button>
-      </div>
+        <div id="commentsList"></div>
     </div>
-    <div style="margin-top:12px;color:var(--muted);font-size:14px" id="videoStats"></div>
-    <div class="desc"><div id="descText"></div></div>
-    <div class="comments">
-      <h3>Комментарии</h3>
-      <div class="comment-form">
-        <textarea id="commentInput" placeholder="Оставьте комментарий..."></textarea>
-        <button class="send-btn" id="sendComment">Отправить</button>
-      </div>
-      <div id="commentsList" style="margin-top:20px;"></div>
-    </div>
-  </div>
-  <aside class="side-column">
-    <h4 style="margin-top:0;">Рекомендуем</h4>
-    <div id="recommendedList"></div>
-  </aside>
+    
+    <aside class="side-column">
+        <h4>Рекомендуем</h4>
+        <div id="recommendedList"></div>
+    </aside>
 </div>
 
 <script>
-const videoId = new URLSearchParams(location.search).get('v');
+const videoId = new URLSearchParams(window.location.search).get('v');
 const currentUser = localStorage.getItem('currentUser');
 
-async function init() {
-    if (!videoId) return location.href = 'index.html';
+async function loadPage() {
+    if (!videoId) return;
     
-    document.getElementById('player-container').innerHTML = `
-        <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" allowfullscreen></iframe>
-    `;
-
+    // Инициализация плеера
+    document.getElementById('player-container').innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" allowfullscreen></iframe>`;
+    
     try {
-        const res = await fetch('/api/youtube/trends');
-        const videos = await res.json();
-        const v = videos.find(x => x._id == videoId) || { title: "YouTube Video", description: "", author_name: "Channel", views: "0", created_at: new Date() };
-
-        document.getElementById('videoTitle').innerText = v.title;
-        document.getElementById('descText').innerText = v.description;
-        document.getElementById('videoStats').innerText = `${v.views} просмотров • ${new Date(v.created_at).toLocaleDateString()}`;
-        document.getElementById('authorName').innerText = "@" + v.author_name;
-        document.getElementById('authorAvatar').innerText = v.author_name[0].toUpperCase();
-
-        renderRecommended(videos);
-        loadInteractionStatus(v.author_name);
-        loadComments();
-    } catch(e) { console.error(e); }
-}
-
-async function loadInteractionStatus(author) {
-    if(!currentUser) return;
-    const [likeRes, subRes] = await Promise.all([
-        fetch(`/videos/${videoId}/likes-status?username=${currentUser}`).then(r => r.json()),
-        fetch(`/subscribe/status?follower=${currentUser}&authorName=${author}`).then(r => r.json())
-    ]);
-    
-    document.getElementById('likeCount').innerText = likeRes.count || 0;
-    if(likeRes.isLiked) document.getElementById('likeBtn').classList.add('active');
-    if(subRes.subscribed) {
-        const btn = document.getElementById('subBtn');
-        btn.innerText = "Вы подписаны";
-        btn.classList.add('active');
-    }
-}
-
-function renderRecommended(videos) {
-    const list = document.getElementById('recommendedList');
-    list.innerHTML = videos.filter(v => v._id != videoId).slice(0, 8).map(v => `
-        <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
-            <div class="side-thumb-wrapper"><img src="${v.thumbnail_url}" class="side-thumb"></div>
-            <div class="side-info">
-                <div class="title-small">${v.title}</div>
-                <div style="font-size:12px; color:var(--muted);">${v.author_name}</div>
+        const response = await fetch('/api/youtube/trends');
+        const videos = await response.json();
+        const video = videos.find(v => v._id == videoId);
+        
+        if (video) {
+            document.getElementById('videoTitle').innerText = video.title;
+            document.getElementById('descText').innerText = video.description || "Без описания";
+            document.getElementById('authorName').innerText = "@" + video.author_name;
+            
+            // Загрузка статистики
+            fetch(`/subscribe/count/${video.author_name}`)
+                .then(r => r.json())
+                .then(data => document.getElementById('subCount').innerText = (data.count || 0) + " подписчиков");
+        }
+        
+        // Рендер рекомендаций
+        const list = document.getElementById('recommendedList');
+        list.innerHTML = videos.filter(v => v._id != videoId).map(v => `
+            <div class="side-card" onclick="location.href='watch.html?v=${v._id}'">
+                <img src="${v.thumbnail_url}" class="side-thumb">
+                <div>
+                    <div style="font-size:14px; font-weight:500;">${v.title}</div>
+                    <div style="font-size:12px; color:gray;">${v.author_name}</div>
+                </div>
             </div>
+        `).join('');
+
+        loadComments();
+    } catch (e) { console.error("Ошибка загрузки данных:", e); }
+}
+
+async function loadComments() {
+    const res = await fetch(`/videos/${videoId}/comments`);
+    const comments = await res.json();
+    document.getElementById('commentsList').innerHTML = comments.map(c => `
+        <div style="margin: 15px 0; padding-bottom:10px; border-bottom:1px solid #222;">
+            <div style="font-weight:bold; color:#8b5cf6;">@${c.user_name}</div>
+            <div style="margin-top:5px;">${c.comment_text}</div>
         </div>
     `).join('');
 }
 
-document.getElementById('sendComment').onclick = async () => {
+document.getElementById('sendBtn').onclick = async () => {
     const text = document.getElementById('commentInput').value;
-    if(!currentUser || !text.trim()) return;
+    if (!currentUser || !text.trim()) return alert("Авторизуйтесь!");
     await fetch(`/videos/${videoId}/comments`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -174,18 +124,7 @@ document.getElementById('sendComment').onclick = async () => {
     loadComments();
 };
 
-async function loadComments() {
-    const res = await fetch(`/videos/${videoId}/comments`);
-    const data = await res.json();
-    document.getElementById('commentsList').innerHTML = data.map(c => `
-        <div style="margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <b>@${c.user_name}</b>
-            <div style="color:#ddd; font-size:14px;">${c.comment_text}</div>
-        </div>
-    `).join('');
-}
-
-init();
+loadPage();
 </script>
 </body>
 </html>
