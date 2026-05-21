@@ -57,6 +57,19 @@ async function connectDB() {
 }
 connectDB();
 
+// --- ГЛОБАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ YOUTUBE ---
+let youtube;
+async function initYouTube() {
+    try {
+        // Создаем одну сессию на всё время работы сервера с геолокацией
+        youtube = await Innertube.create({ lang: 'ru', location: 'RU' });
+        console.log("🚀 Сессия YouTube Innertube успешно создана");
+    } catch (err) {
+        console.error("❌ Ошибка инициализации YouTube сессии:", err.message);
+    }
+}
+initYouTube();
+
 // --- НАСТРОЙКА MULTER ---
 
 // 1. Для тяжелых файлов (видео и превью) оставляем диск
@@ -197,7 +210,7 @@ app.post('/upload', uploadFields, async (req, res) => {
     try {
         const { title, description, username } = req.body;
         const files = req.files;
-        if (!files || !files.video) return res.status(400).send('Видео файл обязателен');
+        if (!files || !files.video) return res.status(400).send('Video файл обязателен');
 
         const videoLocalPath = files.video[0].path;
 
@@ -446,15 +459,18 @@ app.post('/notifications/read', async (req, res) => {
 // Вкладка трендов (главная страница)
 app.get('/api/youtube/trends', async (req, res) => {
     try {
-        const youtube = await Innertube.create();
-        const trends = await youtube.getTrending();
+        if (!youtube) {
+            return res.status(503).json({ error: "Сессия YouTube еще инициализируется, обновите страницу через секунду" });
+        }
+
+        // Запасной рабочий вариант через поиск, пока метод getTrending() ломается на стороне API YouTube
+        const searchResults = await youtube.search('тренды'); 
         
-        if (!trends || !trends.videos) {
+        if (!searchResults || !searchResults.videos) {
             return res.json([]);
         }
 
-        // Безопасный маппинг с проверкой наличия внутренних свойств (?.)
-        const videos = trends.videos.map(v => ({
+        const videos = searchResults.videos.map(v => ({
             _id: v.id || '',
             title: v.title?.text || v.title?.toString() || 'Без названия',
             description: v.description?.text || v.description?.toString() || '',
@@ -478,14 +494,16 @@ app.get('/api/youtube/search', async (req, res) => {
         const { query } = req.query;
         if (!query) return res.status(400).send("Введите запрос для поиска");
 
-        const youtube = await Innertube.create();
+        if (!youtube) {
+            return res.status(503).json({ error: "Сессия YouTube еще инициализируется" });
+        }
+
         const searchResults = await youtube.search(query);
         
         if (!searchResults || !searchResults.videos) {
             return res.json([]);
         }
 
-        // Безопасный маппинг с проверкой наличия внутренних свойств (?.)
         const videos = searchResults.videos.map(v => ({
             _id: v.id || '',
             title: v.title?.text || v.title?.toString() || 'Без названия',
