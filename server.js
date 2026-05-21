@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
 });
 
 // --- ПОДКЛЮЧЕНИЕ К MONGODB ---
-const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://admin:wOWgCpoBtti6gneb@cluster0.rnxra9s.mongodb.net/VideoHub_db?retryWrites=true&w=majority';
+const mongoUrl = process.env.MONGO_URL || 'mongodb+srv://dmin:RedDragon505606@cluster0.rnxra9s.mongodb.net/videotube_db?appName=Cluster0';
 const client = new MongoClient(mongoUrl, {
     connectTimeoutMS: 10000, 
     family: 4 
