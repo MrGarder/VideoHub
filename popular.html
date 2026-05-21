@@ -83,12 +83,11 @@
 </div>
 
 <script>
-  const API_URL = "https://videohub-c48i.onrender.com";
-
   function playPreview(card) {
       const v = card.querySelector('video');
       const i = card.querySelector('img');
-      if (v) { 
+      // Запускаем превью только если у тега video прописан реальный источник
+      if (v && v.getAttribute('src')) { 
         v.style.opacity = "1"; 
         if(i) i.style.opacity = "0";
         v.play().catch(() => {}); 
@@ -98,7 +97,7 @@
   function stopPreview(card) {
       const v = card.querySelector('video');
       const i = card.querySelector('img');
-      if (v) { 
+      if (v && v.getAttribute('src')) { 
         v.pause(); v.currentTime = 0; 
         v.style.opacity = "0"; 
         if(i) i.style.opacity = "1";
@@ -108,23 +107,32 @@
   async function loadPopular() {
     const grid = document.getElementById('popularGrid');
     try {
-      const res = await fetch(`${API_URL}/videos`);
-      const videos = await res.json();
+      // Подгружаем как локальные видео, так и тренды для общего списка
+      const [localRes, trendRes] = await Promise.all([
+         fetch('/videos').then(r => r.ok ? r.json() : []),
+         fetch('/api/youtube/trends').then(r => r.ok ? r.json() : [])
+      ]);
       
-      // Сортировка по популярности
-      videos.sort((a, b) => ((b.views || 0) + (b.likes || 0) * 2) - ((a.views || 0) + (a.likes || 0) * 2));
+      const allVideos = [...localRes, ...trendRes];
+      
+      // Сортировка по весу (просмотры + лайки)
+      allVideos.sort((a, b) => {
+         const scoreA = (parseInt(a.views) || 0) + (parseInt(a.likes) || 0) * 2;
+         const scoreB = (parseInt(b.views) || 0) + (parseInt(b.likes) || 0) * 2;
+         return scoreB - scoreA;
+      });
 
-      grid.innerHTML = videos.slice(0, 20).map((v, index) => {
-        // Берем прямую ссылку из Cloudinary (v.url)
-        const videoSrc = v.url || '';
+      grid.innerHTML = allVideos.slice(0, 20).map((v, index) => {
+        const id = v._id || v.id;
+        const hasVideoFile = v.url && v.url !== 'null';
         const thumbSrc = v.thumbnail_url || 'https://via.placeholder.com/640x360/111/444?text=Video';
 
         return `
-          <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${v._id}'">
+          <div class="video-card" onmouseenter="playPreview(this)" onmouseleave="stopPreview(this)" onclick="location.href='watch.html?v=${id}'">
             <div class="trending-badge">#${index + 1}</div>
             <div class="thumb-wrapper">
               <img src="${thumbSrc}">
-              <video src="${videoSrc}" muted loop preload="metadata" playsinline></video>
+              <video src="${hasVideoFile ? v.url + '#t=0.1' : ''}" muted loop preload="metadata" playsinline></video>
             </div>
             <div class="video-info">
               <h4>${v.title || 'Без названия'}</h4>
@@ -132,7 +140,7 @@
                 <span>👁 <b>${v.views || 0}</b></span>
                 <span class="like-section">❤️ <b>${v.likes || 0}</b></span>
               </div>
-              <p style="margin-top:8px; font-size:12px; color:var(--accent)">@${v.author_name || 'Аноним'}</p>
+              <p style="margin-top:8px; font-size:12px; color:var(--accent); cursor:pointer;" onclick="event.stopPropagation(); location.href='profile.html?user=${v.author_name}'">@${v.author_name || 'Аноним'}</p>
             </div>
           </div>
         `;
