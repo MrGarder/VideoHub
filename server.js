@@ -57,15 +57,23 @@ async function connectDB() {
 connectDB();
 
 // --- НАСТРОЙКА MULTER (Временное хранилище перед отправкой в облако) ---
-const storage = multer.diskStorage({
+// --- НАСТРОЙКА MULTER ---
+
+// 1. Для тяжелых файлов (видео и превью) оставляем диск, чтобы не забивать оперативку
+const diskStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({ storage: storage, limits: { fileSize: 100 * 1024 * 1024 } });
-const uploadFields = upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
+const uploadDisk = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024 * 1024 } });
+const uploadFields = uploadDisk.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
 
-// Мидлвар для загрузки одиночной аватарки профиля
-const uploadAvatar = upload.single('avatar');
+// 2. ДЛЯ АВАТАРОК создаем быструю загрузку через оперативную память (Memory Storage)
+// Это решит проблему с ошибкой 500 на Render
+const memoryStorage = multer.memoryStorage();
+const uploadAvatar = multer({ 
+    storage: memoryStorage, 
+    limits: { fileSize: 10 * 1024 * 1024 } // Ограничение 10 МБ для фото
+}).single('avatar');
 
 
 // --- МАРШРУТЫ: ПРОФИЛИ (ДОБАВЛЕНО И ИСПРАВЛЕНО) ---
