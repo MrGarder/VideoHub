@@ -71,7 +71,6 @@
     #recommendedList::-webkit-scrollbar { width: 4px; }
     #recommendedList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-    /* Стили для контейнера плеера */
     #player-container { width:100%; border-radius:16px; background:black; aspect-ratio: 16/9; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
     #player-container iframe { width: 100%; height: 100%; border: none; }
 
@@ -107,7 +106,6 @@
     
     .comments{margin-top:30px}
     
-    /* ИСПРАВЛЕНО: Современный Flexbox для формы, чтобы ничего не ломалось */
     .comment-form { display: flex; flex-direction: column; gap: 12px; }
     .comment-form textarea{width:100%;min-height:40px;padding:12px 0;border:none;border-bottom:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text);resize:none;outline:none;transition:0.3s;font-size:15px;}
     .comment-form textarea:focus{border-bottom:2px solid #8b5cf6}
@@ -224,7 +222,6 @@ async function initWatchPage() {
     try {
         const playerContainer = document.getElementById('player-container');
         if (playerContainer) {
-            /* ИСПРАВЛЕНО: Закрывающий тег iframe теперь валидный */
             playerContainer.innerHTML = `
                 <iframe 
                     src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" 
@@ -238,17 +235,32 @@ async function initWatchPage() {
         const res = await fetch('/api/youtube/trends');
         const allVideos = await res.json();
         
-        const foundVideo = allVideos.find(v => v._id == videoId);
+        let foundVideo = allVideos.find(v => v._id == videoId);
         
         if (foundVideo) {
             currentVideoData = foundVideo;
         } else {
+            // Если видео нет в трендах, пытаемся вытащить данные через поиск по ID, чтобы получить реального автора ролика
+            try {
+                const searchRes = await fetch(`/api/youtube/search?query=${videoId}`);
+                const searchVideos = await searchRes.json();
+                const matchedVideo = searchVideos.find(v => v._id == videoId);
+                if (matchedVideo) {
+                    currentVideoData = matchedVideo;
+                }
+            } catch(e) {
+                console.error("Не удалось найти автора через поиск:", e);
+            }
+        }
+
+        // Если совсем ничего не нашлось, оставляем безопасный дефолт, но берем ID как имя, чтобы комменты не мешались
+        if (!currentVideoData) {
             currentVideoData = {
                 _id: videoId,
                 title: "Видео с YouTube",
                 description: "Просмотр видеоролика напрямую через платформу YouTube.",
-                author_name: "YouTube_Channel",
-                views: "Информации о",
+                author_name: "YouTube_Author_" + videoId.substring(0,4),
+                views: "0",
                 created_at: new Date()
             };
         }
@@ -300,7 +312,7 @@ async function initWatchPage() {
 async function loadLikesStatus() {
     const res = await fetch(`/videos/${videoId}/likes-status?username=${currentUser || ''}`);
     const data = await res.json();
-    document.getElementById('likeCount').innerText = data.count;
+    document.getElementById('likeCount').innerText = data.count || 0;
     const lBtn = document.getElementById('likeBtn');
     const dBtn = document.getElementById('dislikeBtn');
     if(data.isLiked) lBtn.classList.add('active'); else lBtn.classList.remove('active');
@@ -389,7 +401,7 @@ async function loadComments() {
     list.innerHTML = comments.map(c => `
         <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                <b style="color: var(--accent); cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
+                <b style="color: var(--accent-solid); cursor:pointer;" onclick="goToChannel('${c.user_name}')">@${c.user_name}</b>
                 <small style="color: #666;">${formatDate(c.created_at)}</small>
             </div>
             <div style="font-size: 14px; color: #ddd;">${c.comment_text}</div>
