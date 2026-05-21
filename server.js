@@ -522,20 +522,26 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         const { videoId } = req.params;
         if (!youtube) return res.status(503).json({ error: "YouTube сессия не готова" });
 
-        // Используем getInfo (актуальный метод)
         const videoInfo = await youtube.getInfo(videoId);
+        
+        // 1. Получаем секцию комментариев
         const commentsData = await videoInfo.getComments();
+        
+        // 2. В актуальных версиях комментарии обычно лежат в .sections[0].contents
+        // Используем опциональную цепочку (?.), чтобы избежать падения, если структура изменилась
+        const rawComments = commentsData.sections?.[0]?.contents || commentsData.contents || [];
 
-        // Формируем массив комментариев
-        const comments = (commentsData.contents || []).map(c => ({
-            user: c.author?.text || "Аноним",
+        // 3. Маппинг данных
+        const comments = rawComments.map(c => ({
+            // Убедитесь, что пути к автору и тексту соответствуют структуре ответа
+            user: c.author?.text?.text || c.author?.text || "Аноним",
             text: c.content?.text || ""
-        }));
+        })).filter(c => c.text !== ""); // Убираем пустые записи
 
         res.json(comments);
     } catch (err) {
         console.error("Ошибка получения комментариев YouTube:", err);
-        res.status(500).json({ error: "Не удалось загрузить комментарии" });
+        res.status(500).json({ error: "Не удалось загрузить комментарии: " + err.message });
     }
 });
 
