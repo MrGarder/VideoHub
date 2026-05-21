@@ -88,7 +88,7 @@
     .video-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); border-color: var(--accent); }
     
     .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative; }
-    .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 2; transition: opacity 0.3s ease; }
+    .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 2; }
 
     .video-info { padding: 15px; }
     .video-info h4 { margin: 0 0 8px 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -338,24 +338,45 @@
         }
     } else { voiceBtn.style.display = 'none'; }
 
-    // --- ОТРИСОВКА ВИДЕО (БЕСКОНЕЧНЫЙ ВЫВОД) ---
+    // --- ОТРИСОВКА ВИДЕО (ИСПРАВЛЕННАЯ С ГИБКИМИ ПОЛЯМИ) ---
     function renderVideos(videos) {
         const videoList = document.getElementById("videoList");
         if (!videos || videos.length === 0) {
             videoList.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 40px;'>Ничего не найдено...</p>";
             return;
         }
-        // Выводим все видео без использования метода .slice()
+
         videoList.innerHTML = videos.map(v => {
           const id = v._id || v.id;
+          
+          // Безопасное чтение заголовка
+          const title = v.title || (v.snippet && v.snippet.title) || 'Без названия';
+          
+          // Безопасное чтение автора канала
+          const author = v.author_name || (v.snippet && v.snippet.channelTitle) || 'YouTube Автор';
+          
+          // Каскадная проверка путей картинок для обложек
+          let thumbSrc = 'https://via.placeholder.com/640x360/111/444?text=Video';
+          if (v.thumbnail_url) {
+              thumbSrc = v.thumbnail_url;
+          } else if (v.thumbnails && v.thumbnails.high) {
+              thumbSrc = v.thumbnails.high.url;
+          } else if (v.snippet && v.snippet.thumbnails && v.snippet.thumbnails.high) {
+              thumbSrc = v.snippet.thumbnails.high.url;
+          } else if (v.snippet && v.snippet.thumbnails && v.snippet.thumbnails.medium) {
+              thumbSrc = v.snippet.thumbnails.medium.url;
+          } else if (v.snippet && v.snippet.thumbnails && v.snippet.thumbnails.default) {
+              thumbSrc = v.snippet.thumbnails.default.url;
+          }
+
           return `
             <div class="video-card" onclick="location.href='watch.html?v=${id}'">
               <div class="thumb-wrapper">
-                <img src="${v.thumbnail_url || 'https://via.placeholder.com/640x360/111/444?text=Video'}" alt="thumb">
+                <img src="${thumbSrc}" alt="thumb" onerror="this.onerror=null; this.src='https://via.placeholder.com/640x360/111/444?text=No+Image';">
               </div>
               <div class="video-info">
-                <h4>${v.title || 'Без названия'}</h4>
-                <p onclick="event.stopPropagation(); location.href='profile.html?user=${v.author_name}'">Автор: <b>@${v.author_name || 'Аноним'}</b></p>
+                <h4 title="${title}">${title}</h4>
+                <p onclick="event.stopPropagation(); location.href='profile.html?user=${author}'">Автор: <b>@${author}</b></p>
                 <p style="font-size:12px; margin-top:5px; opacity: 0.7;">👁 ${v.views || 0}</p>
               </div>
             </div>
