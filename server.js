@@ -516,7 +516,6 @@ app.get('/api/youtube/search', async (req, res) => {
     }
 });
 
-// --- ИНТЕГРАЦИЯ КОММЕНТАРИЕВ YOUTUBE ---
 app.get('/api/youtube/comments/:videoId', async (req, res) => {
     try {
         const { videoId } = req.params;
@@ -524,35 +523,34 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
 
         const videoInfo = await youtube.getInfo(videoId);
         
-        // 1. Получаем секцию комментариев
-        const commentsData = await videoInfo.getComments();
+        // ВАЖНО: Вместо .getComments() пробуем .getCommentsSection()
+        // Если это все равно не работает, проверьте, доступно ли свойство videoInfo.comments
+        const commentsData = await videoInfo.getCommentsSection();
         
-        // 2. В актуальных версиях комментарии обычно лежат в .sections[0].contents
-        // Используем опциональную цепочку (?.), чтобы избежать падения, если структура изменилась
-        const rawComments = commentsData.sections?.[0]?.contents || commentsData.contents || [];
+        // Обработка данных
+        const rawComments = commentsData?.contents || [];
 
-       // 3. Маппинг данных
-const comments = rawComments.map(c => {
-    // Безопасное извлечение имени автора
-    let author = "Аноним";
-    if (c.author?.text?.text) author = c.author.text.text;
-    else if (c.author?.text?.runs) author = c.author.text.runs[0].text;
+        const comments = rawComments.map(c => {
+            // Безопасное извлечение (учитывая структуру объекта CommentThread)
+            const author = c.author_text?.text || "Аноним";
+            
+            // Текст обычно лежит в content.text или в массиве runs
+            let text = "";
+            if (c.content_text?.text) {
+                text = c.content_text.text;
+            } else if (c.content_text?.runs) {
+                text = c.content_text.runs.map(r => r.text).join('');
+            }
 
-    // Безопасное извлечение текста комментария (через runs)
-    let text = "";
-    if (c.content?.text) text = c.content.text;
-    else if (c.content?.runs) text = c.content.runs.map(r => r.text).join('');
-
-    return { user: author, text: text };
-}).filter(c => c.text.trim() !== ""); // Убираем пустые записи
+            return { user: author, text: text };
+        }).filter(c => c.text && c.text.trim() !== "");
 
         res.json(comments);
     } catch (err) {
-        console.error("Ошибка получения комментариев YouTube:", err);
-        res.status(500).json({ error: "Не удалось загрузить комментарии: " + err.message });
+        console.error("❌ Ошибка получения комментариев:", err);
+        res.status(500).json({ error: "Не удалось загрузить комментарии. Попробуйте обновить библиотеку." });
     }
 });
-
 // В функции initYouTube
 async function initYouTube() {
     try {
