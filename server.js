@@ -563,36 +563,27 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         res.json([]); 
     }
 });
-// В функции initYouTube
+// --- ИНИЦИАЛИЗАЦИЯ YOUTUBE ---
+let youtube;
+
 async function initYouTube() {
     try {
         youtube = await Innertube.create({ 
             lang: 'ru', 
             location: 'RU',
-            // Иногда помогает отключение предзагрузки некоторых данных
+            // Оставляем fetcher: undefined для стабильности на облачных серверах (Render)
             fetcher: undefined 
         });
         console.log("🚀 Сессия YouTube Innertube успешно создана");
     } catch (err) {
-        console.error("❌ Ошибка инициализации:", err.message);
-    }
-}
-// --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ---
-async function initYouTube() {
-    try {
-        youtube = await Innertube.create({ 
-            lang: 'ru', 
-            location: 'RU' 
-        });
-        console.log("🚀 Сессия YouTube Innertube успешно создана");
-    } catch (err) {
-        console.error("❌ Ошибка инициализации:", err.message);
+        console.error("❌ Ошибка инициализации YouTube:", err.message);
     }
 }
 
-// ВАЖНО: Вызов функции инициализации
-initYouTube(); 
+// Запускаем инициализацию один раз
+initYouTube();
 
+// --- ЗАПУСК СЕРВЕРА ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 VideoHub на MongoDB запущен! Порт: ${PORT}`);
