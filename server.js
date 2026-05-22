@@ -451,6 +451,13 @@ app.post('/notifications/read', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+
+const originalWarn = console.warn;
+console.warn = (...args) => {
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('[YOUTUBEJS][Parser]')) return;
+    originalWarn.apply(console, args);
+};
+
 // --- ИНТЕГРАЦИЯ YOUTUBE ---
 
 app.get('/api/youtube/trends', async (req, res) => {
@@ -521,34 +528,39 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         const { videoId } = req.params;
         if (!youtube) return res.status(503).json({ error: "YouTube сессия не готова" });
 
+        // 1. Используем .catch, чтобы не "падать" при ошибке API
         const videoInfo = await youtube.getInfo(videoId);
+        const commentsData = await videoInfo.getCommentsSection().catch(err => {
+            console.error("Ошибка при получении секции комментариев:", err.message);
+            return null;
+        });
         
-        // ВАЖНО: Вместо .getComments() пробуем .getCommentsSection()
-        // Если это все равно не работает, проверьте, доступно ли свойство videoInfo.comments
-        const commentsData = await videoInfo.getCommentsSection();
-        
-        // Обработка данных
-        const rawComments = commentsData?.contents || [];
+        // 2. Если данных нет, просто возвращаем пустой массив
+        if (!commentsData || !commentsData.contents) {
+            return res.json([]);
+        }
 
-        const comments = rawComments.map(c => {
-            // Безопасное извлечение (учитывая структуру объекта CommentThread)
-            const author = c.author_text?.text || "Аноним";
-            
-            // Текст обычно лежит в content.text или в массиве runs
-            let text = "";
-            if (c.content_text?.text) {
-                text = c.content_text.text;
-            } else if (c.content_text?.runs) {
-                text = c.content_text.runs.map(r => r.text).join('');
+        // 3. Более надежный маппинг
+        const comments = commentsData.contents.map(c => {
+            try {
+                // Извлекаем автора из структуры CommentThread или Comment
+                const author = c.author_text?.text || "Аноним";
+                
+                // Извлекаем текст (поддержка разных форматов данных youtubei.js)
+                const text = c.content_text?.text || 
+                             c.content_text?.runs?.map(r => r.text).join('') || "";
+
+                return { user: author, text: text };
+            } catch (e) {
+                return null; // Пропускаем сломанные элементы
             }
-
-            return { user: author, text: text };
-        }).filter(c => c.text && c.text.trim() !== "");
+        }).filter(c => c !== null && c.text.trim() !== "");
 
         res.json(comments);
     } catch (err) {
-        console.error("❌ Ошибка получения комментариев:", err);
-        res.status(500).json({ error: "Не удалось загрузить комментарии. Попробуйте обновить библиотеку." });
+        // 4. Логируем, но не возвращаем 500 ошибку, чтобы клиент не "сломался"
+        console.error("❌ Критическая ошибка в /api/youtube/comments:", err.message);
+        res.json([]); 
     }
 });
 // В функции initYouTube
