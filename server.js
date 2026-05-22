@@ -11,6 +11,18 @@ require('dotenv').config();
 
 const app = express();
 
+// Настройка Multer для обработки файлов
+const storage = multer.memoryStorage(); // Используем память, так как сразу грузим в Cloudinary
+const upload = multer({ storage: storage });
+
+// Это middleware, который ты пытаешься использовать
+const uploadAvatar = upload.array('avatar', 1); 
+const uploadFields = upload.fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+]);
+
+
 // --- НАСТРОЙКА CLOUDINARY ---
 cloudinary.config({ 
   cloud_name: 'dtcfxvsfo', 
@@ -303,17 +315,6 @@ app.post('/videos/:id/dislike', async (req, res) => {
         }
     } catch (err) { res.status(500).send(err.message); }
 });
-
-// Настройка Multer для обработки файлов
-const storage = multer.memoryStorage(); // Используем память, так как сразу грузим в Cloudinary
-const upload = multer({ storage: storage });
-
-// Это middleware, который ты пытаешься использовать
-const uploadAvatar = upload.array('avatar', 1); 
-const uploadFields = upload.fields([
-    { name: 'video', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-]);
 
 // --- ПОДПИСКИ ---
 
