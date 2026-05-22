@@ -538,15 +538,11 @@ app.get('/api/youtube/comments/:videoId', async (req, res) => {
         res.json([]); 
     }
 });
-// --- ИНИЦИАЛИЗАЦИЯ YOUTUBE ---
-let youtube;
-
 async function initYouTube() {
     try {
         youtube = await Innertube.create({ 
             lang: 'ru', 
             location: 'RU',
-            // Оставляем fetcher: undefined для стабильности на облачных серверах (Render)
             fetcher: undefined 
         });
         console.log("🚀 Сессия YouTube Innertube успешно создана");
